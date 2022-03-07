@@ -1,0 +1,3 @@
+* Gobra-mode for Emacs
+
+Adds support to the Emacs IDE for gobra
