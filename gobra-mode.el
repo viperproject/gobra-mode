@@ -34,6 +34,9 @@
 (setq-local gobra-highlight-overlays nil)
 (setq-default gobra-highlight-overlays nil)
 
+(setq-local gobra-is-verified nil)
+(setq-default gobra-is-verified nil)
+
 (setq gobra-jar-path nil)
 (setq gobra-z3-path nil)
 
@@ -49,6 +52,18 @@
      :underline t :inherit error))
   "Gobra face for errors."
   :group 'gobra-faces)
+
+(defface gobra-verified-face
+  '((t (:weight bold :foreground "Green")))
+  "The face used to highlight succesful verification.")
+
+(defface gobra-unverified-face
+  '((t (:weight bold :foreground "Red")))
+  "The face used to highlight failed verification.")
+
+(defface gobra-notran-face
+  '((t (:weight bold :foreground "Orange")))
+  "The face used to highlight not run verification.")
 
 ;; logic
 
@@ -70,7 +85,6 @@
         (forward-char (1- c))
         (let ((start (point)))
           (end-of-line)
-          (message "FUCKING start: %s and FUCKING end: %s" start (point))
           (cons start (point)))))))
 
 (defun gobra-parse-error (data)
@@ -103,8 +117,11 @@
              (numerrors (gobra-extract-num-errors (car useful))))
         (seq-do #'delete-overlay gobra-highlight-overlays)  
         (if (equal numerrors 0)
-            (message "Program verified succesfully!")
-          (gobra-parse-error (cdr useful)))))))
+            (progn
+              (message "Program verified succesfully!")
+              (setq gobra-is-verified 1))
+          (gobra-parse-error (cdr useful))
+          (setq gobra-is-verified 2))))))
 
 (defun gobra-verify ()
   (interactive)
@@ -117,6 +134,15 @@
     (when (process-live-p proc)
       (set-process-sentinel proc #'gobra-read-sentinel))))
 
+(defun gobra-mode-line ()
+  (if (equal major-mode 'gobra-mode)
+      (if (not gobra-is-verified)
+          (concat "[" (propertize "Unknown" 'face 'gobra-notran-face) "]")
+        (if (equal gobra-is-verified 1)
+            (concat "[" (propertize "Verified" 'face 'gobra-verified-face) "]")
+          (concat "[" (propertize "Unverified" 'face 'gobra-unverified-face) "]")))
+    ""))
+
 ;;;###autoload
 
 (defvar gobra-mode-map nil "Keymap for gobra-mode.")
@@ -128,7 +154,10 @@
 (define-derived-mode gobra-mode go-mode
   "gobra mode"
   "Major mode for editing Go programs verified by Gobra"
-  (cursor-sensor-mode))
+  (cursor-sensor-mode)
+  (setq global-mode-string (or global-mode-string '("")))
+  (unless (member '(:eval (gobra-mode-line)) global-mode-string)
+    (setq global-mode-string (append global-mode-string '((:eval (gobra-mode-line)))))))
 
 (add-to-list 'auto-mode-alist '("\\.gobra" . gobra-mode))
 
