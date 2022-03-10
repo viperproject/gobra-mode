@@ -87,7 +87,6 @@
   (let ((err (car data))
         (text (nth 1 data)))
     (with-current-buffer gobra-buffer
-      (message "Error starting at: %s with text %s" err text)
       (let* ((startend (gobra-find-start-end err))
              (start (car startend))
              (end (cdr startend)))
