@@ -1,3 +1,22 @@
 * Gobra-mode for Emacs
 
-Adds support to the Emacs IDE for gobra
+Adds support to the Emacs IDE for [[https://www.pm.inf.ethz.ch/research/gobra.html][Gobra]].
+
+* Installation
+
+This package is under heavy development. Thus, it is not published in any package archives.
+
+To install it, one must clone the repository:
+
+#+BEGIN_SRC shell
+  git clone git@github.com:Dspil/gobra-mode.git
+#+END_SRC
+
+Then, add the following lines in your init.el.
+
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'load-path "<gobra-mode repo path>")
+  (use-package gobra-mode)
+  (setq gobra-jar-path "<gobra jar file path>")
+  (setq gobra-z3-path "<Z3 executable path>")
+#+END_SRC
