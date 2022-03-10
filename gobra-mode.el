@@ -27,15 +27,11 @@
 ;; Viper language.
 
 ;;; Code:
-(setq-local gobra-async-buffer nil)
-(setq-default gobra-async-buffer nil)
-(setq-local gobra-buffer nil)
+(defvar-local gobra-async-buffer nil "Keeps the async buffer in which gobra runs.")
+(defvar-local gobra-buffer nil "The buffer for which gobra runs.")
+(defvar-local gobra-highlight-overlays nil "Keeps the highlight overlays of errors.")
+(defvar-local gobra-is-verified nil "Keeps the status of the program regarding the verification.\nIt is nil if the verification hasn't ran, 1 if the program is verified and 2 if it has failed to verify.")
 
-(setq-local gobra-highlight-overlays nil)
-(setq-default gobra-highlight-overlays nil)
-
-(setq-local gobra-is-verified nil)
-(setq-default gobra-is-verified nil)
 
 (setq gobra-jar-path nil)
 (setq gobra-z3-path nil)
@@ -115,24 +111,30 @@
       (let* ((splitted (split-string out "\n"))
              (useful (cdr (cdr splitted)))
              (numerrors (gobra-extract-num-errors (car useful))))
-        (seq-do #'delete-overlay gobra-highlight-overlays)  
+        (with-current-buffer gobra-buffer
+          (seq-do #'delete-overlay gobra-highlight-overlays))  
         (if (equal numerrors 0)
             (progn
               (message "Program verified succesfully!")
-              (setq gobra-is-verified 1))
+              (with-current-buffer gobra-buffer
+                (setq-local gobra-is-verified 1)))
           (gobra-parse-error (cdr useful))
-          (setq gobra-is-verified 2))))))
+          (with-current-buffer gobra-buffer
+            (setq-local gobra-is-verified 2)))))))
 
 (defun gobra-verify ()
   (interactive)
-  (setq gobra-buffer (current-buffer))
+  (setq-local gobra-buffer (current-buffer))
   (setenv "Z3_EXE" gobra-z3-path)
-  (setq b (format "%s" (async-shell-command (format "java -jar -Xss128m %s -i %s" gobra-jar-path (buffer-file-name)))))
-  (string-match "window [1234567890]* on \\(.*\\)>" b)
-  (setq gobra-async-buffer (match-string 1 b))
-  (let ((proc (get-buffer-process gobra-async-buffer)))
-    (when (process-live-p proc)
-      (set-process-sentinel proc #'gobra-read-sentinel))))
+  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s -i %s" gobra-jar-path (buffer-file-name))))))
+    (string-match "window [1234567890]* on \\(.*\\)>" b)
+    (setq-local gobra-async-buffer (match-string 1 b))
+    (let ((gb (current-buffer)))
+      (with-current-buffer gobra-async-buffer
+        (setq-local gobra-buffer gb)))
+    (let ((proc (get-buffer-process gobra-async-buffer)))
+      (when (process-live-p proc)
+        (set-process-sentinel proc #'gobra-read-sentinel)))))
 
 (defun gobra-mode-line ()
   (if (equal major-mode 'gobra-mode)
