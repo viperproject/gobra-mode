@@ -20,3 +20,6 @@ Then, add the following lines in your init.el.
   (setq gobra-jar-path "<gobra jar file path>")
   (setq gobra-z3-path "<Z3 executable path>")
 #+END_SRC
+* Usage
+
+The verify command is by default bound to ~C-c C-v~ which verifies the file corresponding to the current buffer.
