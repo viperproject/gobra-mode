@@ -6,7 +6,7 @@
 ;; Keywords: lisp
 ;; Version: 0.0.1
 ;; URL: https://github.com/Dspil/gobra-mode
-;; Package-Requires: ((emacs "26.2") (request "20211107.1907"))
+;; Package-Requires: ((emacs "26.2"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -39,7 +39,8 @@
 ;; faces
 
 (defgroup gobra-faces nil
-  "Gobra highlight faces.")
+  "Gobra highlight faces."
+  :group 'tools)
 
 (defface gobra-error
   '((((supports :underline (:style wave)))
