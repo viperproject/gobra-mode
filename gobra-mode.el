@@ -129,6 +129,7 @@
   (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s -i %s" gobra-jar-path (buffer-file-name))))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
+    (setq-local gobra-is-verified 3)
     (let ((gb (current-buffer)))
       (with-current-buffer gobra-async-buffer
         (setq-local gobra-buffer gb)))
@@ -142,7 +143,9 @@
           (concat "[" (propertize "Unknown" 'face 'gobra-notran-face) "]")
         (if (equal gobra-is-verified 1)
             (concat "[" (propertize "Verified" 'face 'gobra-verified-face) "]")
-          (concat "[" (propertize "Unverified" 'face 'gobra-unverified-face) "]")))
+          (if (equal gobra-is-verified 2)
+              (concat "[" (propertize "Unverified" 'face 'gobra-unverified-face) "]")
+            (concat "[" (propertize "Verifying..." 'face 'gobra-notran-face) "]"))))
     ""))
 
 ;;;###autoload
