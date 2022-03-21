@@ -161,6 +161,9 @@
   "Major mode for editing Go programs verified by Gobra"
   (cursor-sensor-mode)
   (setq global-mode-string (or global-mode-string '("")))
+  (font-lock-add-keywords nil
+                '(;
+                  ("invariant\\|requires\\|ensures\\|trusted\\|pred\\|pure\\|forall\\|assert\\|ghost\\|implements\\|unfolding\\|fold\\|unfold" (0 font-lock-builtin-face))))
   (unless (member '(:eval (gobra-mode-line)) global-mode-string)
     (setq global-mode-string (append global-mode-string '((:eval (gobra-mode-line)))))))
 
