@@ -65,13 +65,15 @@
 ;; logic
 
 (defun gobra-extract-num-errors (s)
-  (string-match ".* - Gobra has found \\([0123456789]*\\) error(s):" s)
+  "Find number of errors reported by gobra in S."
+  (string-match ".* - Gobra has found \\([0123456789]*\\) error(s).*" s)
   (let ((num (match-string 1 s)))
     (if num
         (string-to-number num)
       0)))
 
 (defun gobra-find-start-end (err)
+  "Find start and end position of ERR."
   (string-match ".*<.*:\\([0123456789]*\\):\\([0123456789]*\\)>.*" err)
   (let ((l (string-to-number (match-string 1 err)))
         (c (string-to-number (match-string 2 err))))
@@ -85,6 +87,7 @@
           (cons start (point)))))))
 
 (defun gobra-parse-error (data)
+  "Parse a gobra output line error in DATA."
   (let ((err (car data))
         (text (nth 1 data)))
     (with-current-buffer gobra-buffer
@@ -110,10 +113,11 @@
   (with-current-buffer gobra-async-buffer
     (let ((out (buffer-string)))
       (let* ((splitted (split-string out "\n"))
-             (useful (cdr (cdr splitted)))
+             (useful (cdr (cdr (cdr splitted))))
              (numerrors (gobra-extract-num-errors (car useful))))
+        (message "NUM ERRORS: %s" numerrors)
         (with-current-buffer gobra-buffer
-          (seq-do #'delete-overlay gobra-highlight-overlays))  
+          (seq-do #'delete-overlay gobra-highlight-overlays))
         (if (equal numerrors 0)
             (progn
               (message "Program verified succesfully!")
@@ -131,7 +135,7 @@
              (useful (cdr (cdr splitted)))
              (numerrors (gobra-extract-num-errors (car useful))))
         (with-current-buffer gobra-buffer
-          (seq-do #'delete-overlay gobra-highlight-overlays))  
+          (seq-do #'delete-overlay gobra-highlight-overlays))
         (if (equal numerrors 0)
             (progn
               (message "Program verified succesfully!")
