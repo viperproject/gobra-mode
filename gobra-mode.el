@@ -106,6 +106,7 @@
         (message "%s" text))))))
 
 (defun gobra-read-sentinel (proc signal)
+  "Sentinel waiting for async process PROC of gobra to finish verification with SIGNAL."
   (with-current-buffer gobra-async-buffer
     (let ((out (buffer-string)))
       (let* ((splitted (split-string out "\n"))
@@ -122,7 +123,28 @@
           (with-current-buffer gobra-buffer
             (setq-local gobra-is-verified 2)))))))
 
+(defun gobra-goify-sentinel (proc signal)
+  "Sentinel waiting for async process PROC of gobra to finish goifying with SIGNAL."
+  (with-current-buffer gobra-async-buffer
+    (let ((out (buffer-string)))
+      (let* ((splitted (split-string out "\n"))
+             (useful (cdr (cdr splitted)))
+             (numerrors (gobra-extract-num-errors (car useful))))
+        (with-current-buffer gobra-buffer
+          (seq-do #'delete-overlay gobra-highlight-overlays))  
+        (if (equal numerrors 0)
+            (progn
+              (message "Program verified succesfully!")
+              (with-current-buffer gobra-buffer
+                (setq-local gobra-is-verified 1)))
+          (gobra-parse-error (cdr useful))
+          (with-current-buffer gobra-buffer
+            (setq-local gobra-is-verified 2))))))
+  (with-current-buffer gobra-buffer
+    (find-file (concat (buffer-file-name) ".go"))))
+
 (defun gobra-verify ()
+  "Verify current buffer."
   (interactive)
   (setq-local gobra-buffer (current-buffer))
   (setenv "Z3_EXE" gobra-z3-path)
@@ -137,7 +159,24 @@
       (when (process-live-p proc)
         (set-process-sentinel proc #'gobra-read-sentinel)))))
 
+(defun gobra-goify ()
+  "Goify current buffer."
+  (interactive)
+  (setq-local gobra-buffer (current-buffer))
+  (setenv "Z3_EXE" gobra-z3-path)
+  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --goify -i %s" gobra-jar-path (buffer-file-name))))))
+    (string-match "window [1234567890]* on \\(.*\\)>" b)
+    (setq-local gobra-async-buffer (match-string 1 b))
+    (setq-local gobra-is-verified 3)
+    (let ((gb (current-buffer)))
+      (with-current-buffer gobra-async-buffer
+        (setq-local gobra-buffer gb)))
+    (let ((proc (get-buffer-process gobra-async-buffer)))
+      (when (process-live-p proc)
+        (set-process-sentinel proc #'gobra-goify-sentinel)))))
+
 (defun gobra-mode-line ()
+  "Return the mode line string."
   (if (equal major-mode 'gobra-mode)
       (if (not gobra-is-verified)
           (concat "[" (propertize "Unknown" 'face 'gobra-notran-face) "]")
@@ -154,7 +193,8 @@
 
 (when (not gobra-mode-map)
   (setq gobra-mode-map (make-sparse-keymap))
-  (define-key gobra-mode-map (kbd "C-c C-v") 'gobra-verify))
+  (define-key gobra-mode-map (kbd "C-c C-v") 'gobra-verify)
+  (define-key gobra-mode-map (kbd "C-c C-g") 'gobra-goify))
 
 (define-derived-mode gobra-mode go-mode
   "gobra mode"
