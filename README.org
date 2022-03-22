@@ -23,3 +23,4 @@ Then, add the following lines in your init.el.
 * Usage
 
 The verify command is by default bound to ~C-c C-v~ which verifies the file corresponding to the current buffer.
+To additionally convert the current buffer to go code use command ~C-c C-g~. This verifies the current buffer and converts it to Go code which is opened in a new buffer.
