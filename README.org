@@ -16,8 +16,7 @@ Then, add the following lines in your init.el.
 
 #+BEGIN_SRC emacs-lisp
   (add-to-list 'load-path "<gobra-mode repo path>")
-  (use-package gobra-mode
-    :ensure t)
+  (use-package gobra-mode)
   (setq gobra-jar-path "<gobra jar file path>")
   (setq gobra-z3-path "<Z3 executable path>")
 #+END_SRC
