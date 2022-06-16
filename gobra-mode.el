@@ -31,6 +31,7 @@
 (defvar-local gobra-buffer nil "The buffer for which gobra runs.")
 (defvar-local gobra-highlight-overlays nil "Keeps the highlight overlays of errors.")
 (defvar-local gobra-is-verified nil "Keeps the status of the program regarding the verification.\nIt is nil if the verification hasn't ran, 1 if the program is verified and 2 if it has failed to verify.")
+(defvar-local gobra-additional-arguments "" "Stores any additional arguments passed to gobra.")
 
 
 (setq gobra-jar-path nil)
@@ -173,7 +174,7 @@
   (interactive)
   (setq-local gobra-buffer (current-buffer))
   (setenv "Z3_EXE" gobra-z3-path)
-  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s -i %s" gobra-jar-path (buffer-file-name))))))
+  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s -i %s %s" gobra-jar-path (buffer-file-name) gobra-additional-arguments)))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -189,7 +190,7 @@
   (interactive)
   (setq-local gobra-buffer (current-buffer))
   (setenv "Z3_EXE" gobra-z3-path)
-  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --goify -i %s" gobra-jar-path (buffer-file-name))))))
+  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --goify -i %s %s" gobra-jar-path (buffer-file-name) gobra-additional-arguments)))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -205,7 +206,7 @@
   (interactive)
   (setq-local gobra-buffer (current-buffer))
   (setenv "Z3_EXE" gobra-z3-path)
-  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --printVpr -i %s" gobra-jar-path (buffer-file-name))))))
+  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --printVpr -i %s %s" gobra-jar-path (buffer-file-name) gobra-additional-arguments)))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -215,6 +216,11 @@
     (let ((proc (get-buffer-process gobra-async-buffer)))
       (when (process-live-p proc)
         (set-process-sentinel proc #'gobra-printvpr-sentinel)))))
+
+(defun gobra-alter-arguments (s)
+  "Change the additional arguments passed to Gobra to S."
+  (interactive "sEnter Arguments: ")
+  (setq-local gobra-additional-arguments s))
 
 (defun gobra-mode-line ()
   "Return the mode line string."
@@ -236,7 +242,8 @@
   (setq gobra-mode-map (make-sparse-keymap))
   (define-key gobra-mode-map (kbd "C-c C-v") 'gobra-verify)
   (define-key gobra-mode-map (kbd "C-c C-g") 'gobra-goify)
-  (define-key gobra-mode-map (kbd "C-c C-c") 'gobra-printvpr))
+  (define-key gobra-mode-map (kbd "C-c C-c") 'gobra-printvpr)
+  (define-key gobra-mode-map (kbd "C-c C-a") 'gobra-alter-arguments))
 
 (define-derived-mode gobra-mode go-mode
   "gobra mode"

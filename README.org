@@ -22,5 +22,8 @@ Then, add the following lines in your init.el.
 #+END_SRC
 * Usage
 
-The verify command is by default bound to ~C-c C-v~ which verifies the file corresponding to the current buffer.
-To additionally convert the current buffer to go code use command ~C-c C-g~. This verifies the current buffer and converts it to Go code which is opened in a new buffer.
+Default keybindings:
+- ~C-c C-v~: Verifies the file corresponding to the current buffer.
+- ~C-c C-g~: Goifies the current buffer.
+- ~C-c C-a~: Asks for additional command line arguments to the gobra executable.
+- ~C-c C-c~: Opens the generated Viper code in a new buffer.
