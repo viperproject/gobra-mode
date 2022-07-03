@@ -376,12 +376,40 @@
       (gobra-populate-args-buffer))
     (pop-to-buffer arg-buf)))
 
+(defun gobra-dump (data filename)
+  "Dump DATA in the file FILENAME."
+  (with-temp-file filename
+    (prin1 data (current-buffer))))
+
+(defun gobra-load (filename)
+  "Restore data from the file FILENAME."
+  (with-temp-buffer
+    (insert-file-contents filename)
+    (cl-assert (bobp))
+    (read (current-buffer))))
+
+(defun gobra-args-save ()
+  (interactive)
+  (let ((f (read-file-name "File to save configuration: ")))
+    (gobra-dump (cons gobra-args-set gobra-args-of-args) f)))
+
+(defun gobra-args-load ()
+  (interactive)
+  (let* ((f (read-file-name "File name to load configuration: "))
+         (data (gobra-load f))
+         (args (car data))
+         (args-of-args (cdr data)))
+    (setq-local gobra-args-set args)
+    (setq-local gobra-args-of-args args-of-args)
+    (gobra-args-transfer)
+    (gobra-populate-args-buffer)))
+
 (defun gobra-populate-args-buffer ()
   "Insert the prelude and arguments wit their values so far in the current buffer."
   (setq-local buffer-read-only nil)
   (erase-buffer)
   (goto-char (point-min))
-  (insert "Gobra argument selection buffer.\nCheck any argument needed with 'c'.\nPrint documentation of argument with 'd'.\nPress 'q' to exit.\n\n")
+  (insert "Gobra argument selection buffer.\nCheck any argument needed with 'c'.\nPrint documentation of argument with 'd'.\nSave configuraton with 's'.\nLoad configuration with 'l'.\nPress 'q' to exit.\n\n")
   (let ((i gobra-args-doc))
     (while i
       (let ((cur (car i))
@@ -413,7 +441,7 @@
     (gobra-args-transfer)))
 
 (defun gobra-args-region-after-colon ()
-  "Return the beginning and and of the region after : in the construction buffer at the current line."
+  "Return the beginning and and of the region after ':' in the construction buffer at the current line."
   (save-excursion
     (beginning-of-line)
     (forward-char 4)
@@ -495,7 +523,9 @@
   (define-key gobra-args-mode-map (kbd "p") 'previous-line)
   (define-key gobra-args-mode-map (kbd "c") 'gobra-args-check-uncheck-arg)
   (define-key gobra-args-mode-map (kbd "d") 'gobra-args-print-doc)
-  (define-key gobra-args-mode-map (kbd "q") 'gobra-args-quit))
+  (define-key gobra-args-mode-map (kbd "q") 'gobra-args-quit)
+  (define-key gobra-args-mode-map (kbd "s") 'gobra-args-save)
+  (define-key gobra-args-mode-map (kbd "l") 'gobra-args-load))
 
 (define-derived-mode gobra-args-mode fundamental-mode
   "gobra-args mode"
