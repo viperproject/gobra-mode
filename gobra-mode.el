@@ -268,7 +268,7 @@
     ("goify" . "Print the input program with the ghost code commented out")
     ("include" . "Needs <arg...>. Uses the provided directories to perform package-related lookups before falling back to $GOPATH")
     ("includePackages" . "Needs <arg...>. Packages to verify. All packages found in the specified directories are verified by default.")
-    ("input" . "List of files to verify. Optionally, specific members can be verified by passing their line numbers (e.g. foo.gobra@42,111 corresponds to the members in lines 42 and 111) ")
+    ("input" . "Needs <arg...>. List of files to verify. Optionally, specific members can be verified by passing their line numbers (e.g. foo.gobra@42,111 corresponds to the members in lines 42 and 111) ")
     ("int32" . "Run with 32-bit sized integers (the default is 64-bit ints)")
     ("logLevel" . "Needs <arg>. Specifies the log level. The default is OFF. Choices: ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF")
     ("module" . "Needs <arg>. Name of current module that should be used for resolving imports")
@@ -287,22 +287,59 @@
   "Documentation of the gobra arguments.")
 
 (defvar gobra-args-that-need-args
-  '("backend"
-    "boogieExe"
-    "cacheFile"
-    "chop"
-    "directory"
-    "excludePackages"
-    "gobraDirectory"
-    "include"
-    "includePackages"
-    "input"
-    "logLevel"
-    "module"
-    "packageTimeout"
-    "projectRoot"
-    "z3Exe")
-  "Saves all gobra arguments that need arguments.")
+  '(("backend" . (lambda ()
+                   (completing-read "Backend: "
+                                    '("SILICON" "CARBON" "VSWITHSILICON" "VSWITHCARBON") nil t)))
+    ("boogieExe" . (lambda ()
+                     (read-file-name "Boogie Exe path: ")))
+    ("cacheFile" . (lambda ()
+                     (read-file-name "Cache file: ")))
+    ("chop" . (lambda ()
+                (call-interactively
+                 (lambda (arg)
+                   "dummy docstring"
+                   (interactive "nNumber of parts: ")
+                   arg))))
+    ("directory" . (lambda ()
+                     (let ((s (read-directory-name "Directory: ")))
+                       (while (y-or-n-p "Enter more directories? ")
+                         (setq s (concat s " " (read-directory-name "Directory: "))))
+                       s)))
+    ("excludePackages" . (lambda ()
+                           (read-string "Packages: ")))
+    ("gobraDirectory" . (lambda ()
+                          (read-directory-name "Gobra output directory: ")))
+    ("include". (lambda ()
+                  (let ((s (read-directory-name "Directory: ")))
+                    (while (y-or-n-p "Enter more directories? ")
+                      (setq s (concat s " " (read-directory-name "Directory: "))))
+                    s)))
+    ("includePackages" . (lambda ()
+                           (read-string "Packages: ")))
+    ("input" . (lambda ()
+                 (let ((s (read-file-name "File: ")))
+                   (while (y-or-n-p "Enter more files? ")
+                     (setq s (concat s " " (read-file-name "File: "))))
+                   s)))
+    ("logLevel" . (lambda ()
+                    (completing-read "Log level: "
+                                     '("ALL" "TRACE" "DEBUG" "INFO" "WARN" "ERROR" "OFF") nil t)))
+    ("module" . (lambda ()
+                  (read-string "Module: ")))
+    ("packageTimeout" . (lambda ()
+                          (call-interactively
+                           (lambda (arg)
+                             "dummy docstring"
+                             (interactive "nPackage timeout: ") arg))))
+    ("projectRoot" . (lambda ()
+                       (read-file-name "Project root: ")))
+    ("z3Exe" . (lambda ()
+                 (read-file-name "Z3 Exe path: "))))
+  "Saves all gobra arguments that need arguments and a way to get their values.")
+
+(defun gobra-args-get-multiple (inputf prompt &optional esc)
+  (if (not esc)
+      (if (y-or-n-p "More directories? "))))
 
 (defvar-local gobra-args-original-buffer nil "Holds the name of the gobra file that corresponds to a gobra arguments construction buffer.")
 
@@ -319,7 +356,7 @@
       (let ((cur (car i))
             (next (cdr i)))
         (setq s (format "%s --%s" s cur))
-        (when (member cur gobra-args-that-need-args)
+        (when (assoc cur gobra-args-that-need-args)
           (setq s (format "%s %s" s (cdr (assoc cur gobra-args-of-args)))))
         (setq i next)))
     s))
@@ -355,7 +392,7 @@
           (insert-char ? ))
         (insert "] ")
         (insert (car cur))
-        (when (and (member (car cur) gobra-args-set) (member (car cur) gobra-args-that-need-args))
+        (when (and (member (car cur) gobra-args-set) (assoc (car cur) gobra-args-that-need-args))
           (insert (format ": %s" (cdr (assoc (car cur) gobra-args-of-args)))))
         (insert-char ?\n)
         (setq i next))))
@@ -376,6 +413,7 @@
     (gobra-args-transfer)))
 
 (defun gobra-args-region-after-colon ()
+  "Return the beginning and and of the region after : in the construction buffer at the current line."
   (save-excursion
     (beginning-of-line)
     (forward-char 4)
@@ -426,8 +464,8 @@
           (forward-char 2)
           (let ((arg (gobra-args-get-arg)))
             (gobra-args-add-arg arg)
-            (when (member arg gobra-args-that-need-args)
-              (let ((arg-of-arg (read-string "Arg: ")))
+            (when (assoc arg gobra-args-that-need-args)
+              (let ((arg-of-arg (funcall (cdr (assoc arg gobra-args-that-need-args)))))
                 (setq-local gobra-args-of-args (cons (cons arg arg-of-arg) (assoc-delete-all arg gobra-args-of-args)))
                 (let ((r (gobra-args-region-after-colon)))
                   (when r
