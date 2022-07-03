@@ -25,5 +25,5 @@ Then, add the following lines in your init.el.
 Default keybindings:
 - ~C-c C-v~: Verifies the file corresponding to the current buffer.
 - ~C-c C-g~: Goifies the current buffer.
-- ~C-c C-a~: Asks for additional command line arguments to the gobra executable.
 - ~C-c C-c~: Opens the generated Viper code in a new buffer.
+- ~C-c C-a~: Spawns a construction buffer through which the arguments passed to gobra are manipulated.

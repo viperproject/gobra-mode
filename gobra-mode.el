@@ -189,7 +189,7 @@
   (interactive)
   (setq-local gobra-buffer (current-buffer))
   (setenv "Z3_EXE" gobra-z3-path)
-  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --goify -i %s %s" gobra-jar-path (buffer-file-name) gobra-additional-arguments)))))
+  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --goify -i %s" gobra-jar-path (buffer-file-name))))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -205,7 +205,7 @@
   (interactive)
   (setq-local gobra-buffer (current-buffer))
   (setenv "Z3_EXE" gobra-z3-path)
-  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --printVpr -i %s %s" gobra-jar-path (buffer-file-name) gobra-additional-arguments)))))
+  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --printVpr -i %s" gobra-jar-path (buffer-file-name))))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -215,11 +215,6 @@
     (let ((proc (get-buffer-process gobra-async-buffer)))
       (when (process-live-p proc)
         (set-process-sentinel proc #'gobra-printvpr-sentinel)))))
-
-(defun gobra-alter-arguments (s)
-  "Change the additional arguments passed to Gobra to S."
-  (interactive "sEnter Arguments: ")
-  (setq-local gobra-additional-arguments s))
 
 (defun gobra-mode-line ()
   "Return the mode line string."
@@ -241,8 +236,7 @@
   (setq gobra-mode-map (make-sparse-keymap))
   (define-key gobra-mode-map (kbd "C-c C-v") 'gobra-verify)
   (define-key gobra-mode-map (kbd "C-c C-c") 'gobra-printvpr)
-  (define-key gobra-mode-map (kbd "C-c C-a") 'gobra-alter-arguments)
-  (define-key gobra-mode-map (kbd "C-c C-e") 'gobra-edit-args))
+  (define-key gobra-mode-map (kbd "C-c C-a") 'gobra-edit-args))
 
 (define-derived-mode gobra-mode go-mode
   "gobra mode"
