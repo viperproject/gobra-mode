@@ -205,7 +205,10 @@
   (interactive)
   (setq-local gobra-buffer (current-buffer))
   (setenv "Z3_EXE" gobra-z3-path)
-  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --printVpr -i %s" gobra-jar-path (buffer-file-name))))))
+  (let* ((extra-arg (if (not (member "printVpr" gobra-args-set))
+                        " --printVpr "
+                      ""))
+         (b (format "%s" (async-shell-command (format "java -jar -Xss128m %s %s %s" gobra-jar-path extra-arg (gobra-args-serialize))))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
