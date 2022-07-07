@@ -61,6 +61,10 @@
   '((t (:weight bold :foreground "Orange")))
   "The face used to highlight not run verification.")
 
+(defface gobra-argument-face
+  '((t (:foreground "Grey")))
+  "The face used to highlight succesful verification.")
+
 ;; logic
 
 (defun gobra-extract-num-errors (s)
@@ -419,12 +423,12 @@
             (next (cdr i)))
         (insert-char ?\[)
         (if (member (car cur) gobra-args-set)
-            (insert-char ?X)
+            (insert (propertize "X" 'face 'gobra-verified-face))
           (insert-char ? ))
         (insert "] ")
         (insert (car cur))
         (when (and (member (car cur) gobra-args-set) (assoc (car cur) gobra-args-that-need-args))
-          (insert (format ": %s" (cdr (assoc (car cur) gobra-args-of-args)))))
+          (insert (concat ": " (propertize (format "%s" (cdr (assoc (car cur) gobra-args-of-args))) 'face 'gobra-argument-face))))
         (insert-char ?\n)
         (setq i next))))
   (setq-local buffer-read-only t))
@@ -463,7 +467,8 @@
   (setq-local gobra-args-set (delete arg gobra-args-set))
   (setq-local gobra-args-of-args (assoc-delete-all arg gobra-args-of-args))
   (let ((r (gobra-args-region-after-colon)))
-    (delete-region (car r) (cdr r)))
+    (when r
+      (delete-region (car r) (cdr r))))
   (gobra-args-transfer))
 
 (defun gobra-args-get-arg ()
@@ -491,7 +496,7 @@
     (if (eq (char-after) ? )
         (progn
           (delete-char 1)
-          (insert-char ?X)
+          (insert (propertize "X" 'face 'gobra-verified-face))
           (forward-char 2)
           (let ((arg (gobra-args-get-arg)))
             (gobra-args-add-arg arg)
@@ -502,7 +507,7 @@
                   (when r
                     (delete-region (car r) (cdr r))))
                 (end-of-line)
-                (insert (format ": %s" arg-of-arg)))))
+                (insert (concat ": " (propertize (format "%s" arg-of-arg) 'face 'gobra-argument-face))))))
           (gobra-args-transfer))
       (delete-char 1)
       (insert-char ? )
@@ -515,7 +520,6 @@
   (interactive)
   (let ((og gobra-args-original-buffer))
     (kill-buffer)
-    (message "%s" og)
     (pop-to-buffer og)))
 
 (defvar gobra-args-mode-map nil "Keymap for gobra-args.")
