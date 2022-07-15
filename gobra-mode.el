@@ -188,22 +188,6 @@
       (when (process-live-p proc)
         (set-process-sentinel proc #'gobra-read-sentinel)))))
 
-(defun gobra-goify ()
-  "Goify current buffer."
-  (interactive)
-  (setq-local gobra-buffer (current-buffer))
-  (setenv "Z3_EXE" gobra-z3-path)
-  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s --goify -i %s" gobra-jar-path (buffer-file-name))))))
-    (string-match "window [1234567890]* on \\(.*\\)>" b)
-    (setq-local gobra-async-buffer (match-string 1 b))
-    (setq-local gobra-is-verified 3)
-    (let ((gb (current-buffer)))
-      (with-current-buffer gobra-async-buffer
-        (setq-local gobra-buffer gb)))
-    (let ((proc (get-buffer-process gobra-async-buffer)))
-      (when (process-live-p proc)
-        (set-process-sentinel proc #'gobra-goify-sentinel)))))
-
 (defun gobra-printvpr ()
   "Goify current buffer."
   (interactive)
@@ -222,6 +206,13 @@
     (let ((proc (get-buffer-process gobra-async-buffer)))
       (when (process-live-p proc)
         (set-process-sentinel proc #'gobra-printvpr-sentinel)))))
+
+(defun gobra-print-run-command ()
+  "Print the gobra command that should run in an sbt shell and push it to the kill ring."
+  (interactive)
+  (let ((c (format "run%s" (gobra-args-serialize))))
+    (message c)
+    (kill-new c)))
 
 (defun gobra-mode-line ()
   "Return the mode line string."
@@ -243,7 +234,8 @@
   (setq gobra-mode-map (make-sparse-keymap))
   (define-key gobra-mode-map (kbd "C-c C-v") 'gobra-verify)
   (define-key gobra-mode-map (kbd "C-c C-c") 'gobra-printvpr)
-  (define-key gobra-mode-map (kbd "C-c C-a") 'gobra-edit-args))
+  (define-key gobra-mode-map (kbd "C-c C-a") 'gobra-edit-args)
+  (define-key gobra-mode-map (kbd "C-c C-s") 'gobra-print-run-command))
 
 (define-derived-mode gobra-mode go-mode
   "gobra mode"
@@ -337,7 +329,7 @@
                           (call-interactively
                            (lambda (arg)
                              "dummy docstring"
-                             (interactive "nPackage timeout: ") arg))))
+                             (interactive "sPackage timeout: ") arg))))
     ("projectRoot" . (lambda ()
                        (read-file-name "Project root: ")))
     ("z3Exe" . (lambda ()
