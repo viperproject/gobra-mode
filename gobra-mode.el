@@ -336,9 +336,9 @@
                  (read-file-name "Z3 Exe path: "))))
   "Saves all gobra arguments that need arguments and a way to get their values.")
 
-(defun gobra-args-get-multiple (inputf prompt &optional esc)
-  (if (not esc)
-      (if (y-or-n-p "More directories? "))))
+(defvar gobra-args-that-need-many-args
+  '("directory" "excludePackages" "include" "includePackages" "input")
+  "Saves all gobra arguments that need an arbitrary amount of arguments.")
 
 (defvar-local gobra-args-original-buffer nil "Holds the name of the gobra file that corresponds to a gobra arguments construction buffer.")
 
@@ -388,11 +388,13 @@
     (read (current-buffer))))
 
 (defun gobra-args-save ()
+  "Save the current argument configuration to the disk."
   (interactive)
   (let ((f (read-file-name "File to save configuration: ")))
     (gobra-dump (cons gobra-args-set gobra-args-of-args) f)))
 
 (defun gobra-args-load ()
+  "Load an argument configuration from the disk."
   (interactive)
   (let* ((f (read-file-name "File name to load configuration: "))
          (data (gobra-load f))
@@ -408,22 +410,24 @@
   (setq-local buffer-read-only nil)
   (erase-buffer)
   (goto-char (point-min))
-  (insert "Gobra argument selection buffer.\nCheck any argument needed with 'c'.\nPrint documentation of argument with 'd'.\nSave configuraton with 's'.\nLoad configuration with 'l'.\nPress 'q' to exit.\n\n")
-  (let ((i gobra-args-doc))
-    (while i
-      (let ((cur (car i))
-            (next (cdr i)))
-        (insert-char ?\[)
-        (if (member (car cur) gobra-args-set)
-            (insert (propertize "X" 'face 'gobra-verified-face))
-          (insert-char ? ))
-        (insert "] ")
-        (insert (car cur))
-        (when (and (member (car cur) gobra-args-set) (assoc (car cur) gobra-args-that-need-args))
-          (insert (concat ": " (propertize (format "%s" (cdr (assoc (car cur) gobra-args-of-args))) 'face 'gobra-argument-face))))
-        (insert-char ?\n)
-        (setq i next))))
-  (setq-local buffer-read-only t))
+  (insert "Gobra argument selection buffer.\nCheck any argument needed with 'c'.\nAdd arguments to an argument with 'a'\nPrint documentation of argument with 'd'.\nSave configuraton with 's'.\nLoad configuration with 'l'.\nPress 'q' to exit.\n\n")
+  (let ((start-pos (point)))
+    (let ((i gobra-args-doc))
+      (while i
+        (let ((cur (car i))
+              (next (cdr i)))
+          (insert-char ?\[)
+          (if (member (car cur) gobra-args-set)
+              (insert (propertize "X" 'face 'gobra-verified-face))
+            (insert-char ? ))
+          (insert "] ")
+          (insert (car cur))
+          (when (and (member (car cur) gobra-args-set) (assoc (car cur) gobra-args-that-need-args))
+            (insert (concat ": " (propertize (format "%s" (cdr (assoc (car cur) gobra-args-of-args))) 'face 'gobra-argument-face))))
+          (insert-char ?\n)
+          (setq i next))))
+    (setq-local buffer-read-only t)
+    (goto-char start-pos)))
 
 (defun gobra-args-transfer ()
   "Transfer the change to the arguments at the main gobra buffer."
@@ -443,16 +447,18 @@
   "Return the beginning and and of the region after ':' in the construction buffer at the current line."
   (save-excursion
     (beginning-of-line)
-    (forward-char 4)
-    (let ((s (point)))
-      (while (and (not (equal (char-after) ?\n)) (not (equal (char-after) ?:)) (not (eobp)))
-        (forward-char))
-      (when (equal (char-after) ?:)
-        (delete-char 1)
-        (let ((s1 (point)))
-          (while (and (not (equal (char-after) ?\n)) (not (eobp)))
-            (forward-char))
-          (cons s1 (point)))))))
+    (if (equal (char-after) ?\[)
+        (progn
+          (forward-char 4)
+          (let ((s (point)))
+            (while (and (not (equal (char-after) ?\n)) (not (equal (char-after) ?:)) (not (eobp)))
+              (forward-char))
+            (when (equal (char-after) ?:)
+              (let ((s1 (point)))
+                (while (and (not (equal (char-after) ?\n)) (not (eobp)))
+                  (forward-char))
+                (cons s1 (point))))))
+      nil)))
 
 (defun gobra-args-remove-arg (arg)
   "Remove argument ARG from the argument list."
@@ -473,39 +479,51 @@
         (forward-char))
       (buffer-substring s (point)))))
 
+(defun gobra-args-get-arg-of-arg ()
+  "Return the argument of the argument in the line where the cursor is in."
+  (let ((arg gobra-args-get-arg))))
+
 (defun gobra-args-print-doc ()
   "Print the documentation of the argument under point."
   (interactive)
   (message "%s" (cdr (assoc (gobra-args-get-arg) gobra-args-doc 'equal))))
 
-(defun gobra-args-check-uncheck-arg ()
+(defun gobra-args-check-uncheck-arg (&optional append)
   "Toggle the appearance of the argument in the current line of the construction buffer in the argument list."
   (interactive)
   (save-excursion
     (beginning-of-line)
-    (forward-char)
-    (setq-local buffer-read-only nil)
-    (if (eq (char-after) ? )
-        (progn
-          (delete-char 1)
-          (insert (propertize "X" 'face 'gobra-verified-face))
-          (forward-char 2)
-          (let ((arg (gobra-args-get-arg)))
-            (gobra-args-add-arg arg)
-            (when (assoc arg gobra-args-that-need-args)
-              (let ((arg-of-arg (funcall (cdr (assoc arg gobra-args-that-need-args)))))
-                (setq-local gobra-args-of-args (cons (cons arg arg-of-arg) (assoc-delete-all arg gobra-args-of-args)))
-                (let ((r (gobra-args-region-after-colon)))
-                  (when r
-                    (delete-region (car r) (cdr r))))
-                (end-of-line)
-                (insert (concat ": " (propertize (format "%s" arg-of-arg) 'face 'gobra-argument-face))))))
-          (gobra-args-transfer))
-      (delete-char 1)
-      (insert-char ? )
-      (forward-char 2)
-      (gobra-args-remove-arg (gobra-args-get-arg)))
+    (when (equal (char-after) ?\[)
+      (forward-char)
+      (setq-local buffer-read-only nil)
+      (if (or (eq (char-after) ? ) append)
+          (progn
+            (let ((sofar "")
+                  (reg (gobra-args-region-after-colon)))
+              (delete-char 1)
+              (insert (propertize "X" 'face 'gobra-verified-face))
+              (forward-char 2)
+              (let ((arg (gobra-args-get-arg)))
+                (when (and append reg (member arg gobra-args-that-need-many-args))
+                  (setq sofar (buffer-substring (1+ (car reg)) (cdr reg))))
+                (gobra-args-add-arg arg)
+                (when (assoc arg gobra-args-that-need-args)
+                  (let ((arg-of-arg (concat (funcall (cdr (assoc arg gobra-args-that-need-args))) sofar)))
+                    (setq-local gobra-args-of-args (cons (cons arg arg-of-arg) (assoc-delete-all arg gobra-args-of-args)))
+                    (when reg
+                      (delete-region (car reg) (cdr reg)))
+                    (end-of-line)
+                    (insert (concat ": " (propertize (format "%s" arg-of-arg) 'face 'gobra-argument-face)))))))
+            (gobra-args-transfer))
+        (delete-char 1)
+        (insert-char ? )
+        (gobra-args-remove-arg (gobra-args-get-arg))))
     (setq-local buffer-read-only t)))
+
+(defun gobra-args-add-arg-of-arg ()
+  "Toggle on the argument in this line and if it already has arguments, add to the existing ones."
+  (interactive)
+  (gobra-args-check-uncheck-arg t))
 
 (defun gobra-args-quit ()
   "Quit the arguments construction buffer."
@@ -521,6 +539,7 @@
   (define-key gobra-args-mode-map (kbd "n") 'next-line)
   (define-key gobra-args-mode-map (kbd "p") 'previous-line)
   (define-key gobra-args-mode-map (kbd "c") 'gobra-args-check-uncheck-arg)
+  (define-key gobra-args-mode-map (kbd "a") 'gobra-args-add-arg-of-arg)
   (define-key gobra-args-mode-map (kbd "d") 'gobra-args-print-doc)
   (define-key gobra-args-mode-map (kbd "q") 'gobra-args-quit)
   (define-key gobra-args-mode-map (kbd "s") 'gobra-args-save)
