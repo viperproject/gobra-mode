@@ -63,7 +63,7 @@
 
 (defface gobra-argument-face
   '((t (:foreground "Grey")))
-  "The face used to highlight succesful verification.")
+  "The face used to distinguish args from args of args in the arguments construction buffer.")
 
 ;; logic
 
@@ -479,17 +479,13 @@
         (forward-char))
       (buffer-substring s (point)))))
 
-(defun gobra-args-get-arg-of-arg ()
-  "Return the argument of the argument in the line where the cursor is in."
-  (let ((arg gobra-args-get-arg))))
-
 (defun gobra-args-print-doc ()
   "Print the documentation of the argument under point."
   (interactive)
   (message "%s" (cdr (assoc (gobra-args-get-arg) gobra-args-doc 'equal))))
 
 (defun gobra-args-check-uncheck-arg (&optional append)
-  "Toggle the appearance of the argument in the current line of the construction buffer in the argument list."
+  "Toggle the appearance of the argument in the current line of the construction buffer in the argument list.  When APPEND is set to t, args of args are appended to the current arg."
   (interactive)
   (save-excursion
     (beginning-of-line)
