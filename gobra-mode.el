@@ -504,7 +504,7 @@
                   (setq sofar (buffer-substring (1+ (car reg)) (cdr reg))))
                 (gobra-args-add-arg arg)
                 (when (assoc arg gobra-args-that-need-args)
-                  (let ((arg-of-arg (concat (funcall (cdr (assoc arg gobra-args-that-need-args))) sofar)))
+                  (let ((arg-of-arg (concat (format "%s" (funcall (cdr (assoc arg gobra-args-that-need-args)))) sofar)))
                     (setq-local gobra-args-of-args (cons (cons arg arg-of-arg) (assoc-delete-all arg gobra-args-of-args)))
                     (when reg
                       (delete-region (car reg) (cdr reg)))
