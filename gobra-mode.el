@@ -490,11 +490,17 @@
   "Return the argument text contained in a line of the args construction buffer."
   (save-excursion
     (beginning-of-line)
-    (forward-char 4)
-    (let ((s (point)))
-      (while (and (not (equal (char-after) ?\n)) (not (equal (char-after) ?:)) (not (eobp)))
-        (forward-char))
-      (buffer-substring s (point)))))
+    (let ((c (char-after)))
+      (if c
+          (if (eq c ?\[)
+              (progn
+                (forward-char 4)
+                (let ((s (point)))
+                  (while (and (not (equal (char-after) ?\n)) (not (equal (char-after) ?:)) (not (eobp)))
+                    (forward-char))
+                  (buffer-substring s (point))))
+            nil)
+        nil))))
 
 (defun gobra-args-print-doc ()
   "Print the documentation of the argument under point."
@@ -538,6 +544,39 @@
   (interactive)
   (gobra-args-check-uncheck-arg t))
 
+(defun gobra-args-find-arg-line (arg)
+  "Find the line where ARG is on."
+  (save-excursion
+    (goto-char (point-min))
+    (let ((found nil)
+          (line nil))
+      (while (and (not found) (not (eobp)))
+        (let ((farg (gobra-args-get-arg)))
+          (when farg
+            (when (equal arg farg)
+              (setq line (line-number-at-pos))
+              (setq found t)))
+          (forward-line)))
+      line)))
+
+(defun gobra-args-update-arg-of-arg (arg arg-of-arg)
+  "Update the ARG-OF-ARG of ARG."
+  (save-excursion
+    (let ((line (gobra-args-find-arg-line arg)))
+      (when line
+        (goto-char (point-min))
+        (forward-line (1- line))
+        (let ((reg (gobra-args-region-after-colon)))
+          (setq-local buffer-read-only nil)
+          (when reg
+            (delete-region (car reg) (cdr reg)))
+          (end-of-line)
+          (insert (concat ": " (propertize (format "%s" arg-of-arg) 'face 'gobra-argument-face)))
+          (setq-local buffer-read-only nil)))))
+  (gobra-args-add-arg arg)
+  (setq-local gobra-args-of-args (cons (cons arg arg-of-arg) (assoc-delete-all arg gobra-args-of-args)))
+  (gobra-args-transfer))
+
 (defun gobra-args-quit ()
   "Quit the arguments construction buffer."
   (interactive)
@@ -556,7 +595,8 @@
   (define-key gobra-args-mode-map (kbd "d") 'gobra-args-print-doc)
   (define-key gobra-args-mode-map (kbd "q") 'gobra-args-quit)
   (define-key gobra-args-mode-map (kbd "s") 'gobra-args-save)
-  (define-key gobra-args-mode-map (kbd "l") 'gobra-args-load))
+  (define-key gobra-args-mode-map (kbd "l") 'gobra-args-load)
+  (define-key gobra-args-mode-map (kbd "e") 'gobra-construct-args-spawn))
 
 (define-derived-mode gobra-args-mode fundamental-mode
   "gobra-args mode"
@@ -564,6 +604,66 @@
   (use-local-map gobra-args-mode-map)
   (read-only-mode t))
 
+;; major mode for sub construction buffers for args of args
+(defvar-local gobra-construct-args-original-buffer nil "Holds the name of the gobra argument buffer.")
+(defvar-local gobra-construct-args-arg nil "Name of gobra argument being constructed.")
+
+(defun gobra-construct-args-buffer-name ()
+  "Generate a name for the args of args construction buffer."
+  (format "*%s~%s*" (buffer-file-name (get-buffer gobra-args-original-buffer)) (gobra-args-get-arg)))
+
+(defun gobra-construct-args-spawn ()
+  "Spawn a construction buffer for the args of args for the argument currently hovered on."
+  (interactive)
+  (let ((arg (gobra-args-get-arg))
+        (buf (current-buffer)))
+    (when (assoc arg gobra-args-that-need-args)
+      (let* ((arg-of-arg (if (assoc arg gobra-args-of-args)
+                             (cdr (assoc arg gobra-args-of-args))
+                           ""))
+             (arg-buf (gobra-construct-args-buffer-name)))
+        (with-current-buffer (get-buffer-create arg-buf)
+          (gobra-construct-args-mode)
+          (setq-local gobra-construct-args-original-buffer buf)
+          (setq-local gobra-construct-args-arg arg)
+          (erase-buffer)
+          (insert (substring-no-properties arg-of-arg)))
+        (pop-to-buffer arg-buf)))))
+
+(defun gobra-construct-args-accept ()
+  "Accept the change to the current argument."
+  (interactive)
+  (let ((arg gobra-construct-args-arg)
+        (arg-of-arg (buffer-substring-no-properties (point-min) (point-max)))
+        (buf gobra-construct-args-original-buffer))
+    (message "%s | %s | %s" arg arg-of-arg buf)
+    (with-current-buffer buf
+      (gobra-args-update-arg-of-arg arg arg-of-arg))
+    (kill-buffer (current-buffer))
+    (pop-to-buffer buf)))
+
+(defun gobra-construct-args-abort ()
+  "Abort the change to the current argument."
+  (interactive)
+  (let ((buf gobra-construct-args-original-buffer))
+    (kill-buffer (current-buffer))
+    (pop-to-buffer buf)))
+
+(defvar gobra-construct-args-mode-map nil "Keymap for gobra-construct-args.")
+
+(when (not gobra-construct-args-mode-map)
+  (setq gobra-construct-args-mode-map (make-sparse-keymap))
+  (define-key gobra-construct-args-mode-map (kbd "C-c C-c") 'gobra-construct-args-accept)
+  (define-key gobra-construct-args-mode-map (kbd "C-c C-k") 'gobra-construct-args-abort))
+
+(define-derived-mode gobra-construct-args-mode fundamental-mode
+  "gobra-args mode"
+  "Major mode for selecting arguments passed to gobra in a construction buffer"
+  (use-local-map gobra-construct-args-mode-map)
+  (setq header-line-format
+	  (substitute-command-keys
+	   "Edit, then exit with `\\[gobra-construct-args-accept]' or abort with \
+`\\[gobra-construct-args-abort]'")))
 ;; add .gobra files to auto-mode-alist and provide package
 
 ;;;###autoload
