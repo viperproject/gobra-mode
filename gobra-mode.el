@@ -130,26 +130,6 @@
           (with-current-buffer gobra-buffer
             (setq-local gobra-is-verified 2)))))))
 
-(defun gobra-goify-sentinel (proc signal)
-  "Sentinel waiting for async process PROC of gobra to finish goifying with SIGNAL."
-  (with-current-buffer gobra-async-buffer
-    (let ((out (buffer-string)))
-      (let* ((splitted (split-string out "\n"))
-             (useful (cdr (cdr splitted)))
-             (numerrors (gobra-extract-num-errors (car useful))))
-        (with-current-buffer gobra-buffer
-          (seq-do #'delete-overlay gobra-highlight-overlays))
-        (if (equal numerrors 0)
-            (progn
-              (message "Program verified succesfully!")
-              (with-current-buffer gobra-buffer
-                (setq-local gobra-is-verified 1)))
-          (gobra-parse-error (cdr useful))
-          (with-current-buffer gobra-buffer
-            (setq-local gobra-is-verified 2))))))
-  (with-current-buffer gobra-buffer
-    (find-file-other-window (concat (buffer-file-name) ".go"))))
-
 (defun gobra-printvpr-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish the production of vpr code with SIGNAL."
   (with-current-buffer gobra-async-buffer
@@ -177,7 +157,26 @@
   (setq-local gobra-buffer (current-buffer))
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
-  (let ((b (format "%s" (async-shell-command (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize))))))
+  (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
+         (b (format "%s" (async-shell-command (format "echo \"command: %s\"; echo ; time %s" cmd cmd)))))
+    (string-match "window [1234567890]* on \\(.*\\)>" b)
+    (setq-local gobra-async-buffer (match-string 1 b))
+    (setq-local gobra-is-verified 3)
+    (let ((gb (current-buffer)))
+      (with-current-buffer gobra-async-buffer
+        (setq-local gobra-buffer gb)))
+    (let ((proc (get-buffer-process gobra-async-buffer)))
+      (when (process-live-p proc)
+        (set-process-sentinel proc #'gobra-read-sentinel)))))
+
+(defun gobra-verify-line ()
+  "Verify current buffer."
+  (interactive)
+  (setq-local gobra-buffer (current-buffer))
+  (when gobra-z3-path
+    (setenv "Z3_EXE" gobra-z3-path))
+  (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize (cons (buffer-file-name) (line-number-at-pos)))))
+         (b (format "%s" (async-shell-command (format "echo \"command: %s\"; echo ; time %s" cmd cmd)))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -189,14 +188,15 @@
         (set-process-sentinel proc #'gobra-read-sentinel)))))
 
 (defun gobra-printvpr ()
-  "Goify current buffer."
+  "Open viper file for current buffer."
   (interactive)
   (setq-local gobra-buffer (current-buffer))
   (setenv "Z3_EXE" gobra-z3-path)
   (let* ((extra-arg (if (not (member "printVpr" gobra-args-set))
                         " --printVpr "
                       ""))
-         (b (format "%s" (async-shell-command (format "java -jar -Xss128m %s %s %s" gobra-jar-path extra-arg (gobra-args-serialize))))))
+         (cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
+         (b (format "%s" (async-shell-command (format "echo \"command: %s %s\"; echo ; time %s %s" cmd extra-arg cmd extra-arg)))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -235,7 +235,8 @@
   (define-key gobra-mode-map (kbd "C-c C-v") 'gobra-verify)
   (define-key gobra-mode-map (kbd "C-c C-c") 'gobra-printvpr)
   (define-key gobra-mode-map (kbd "C-c C-a") 'gobra-edit-args)
-  (define-key gobra-mode-map (kbd "C-c C-s") 'gobra-print-run-command))
+  (define-key gobra-mode-map (kbd "C-c C-s") 'gobra-print-run-command)
+  (define-key gobra-mode-map (kbd "C-c C-f") 'gobra-verify-line))
 
 (define-derived-mode gobra-mode go-mode
   "gobra mode"
@@ -244,7 +245,7 @@
   (setq global-mode-string (or global-mode-string '("")))
   (font-lock-add-keywords nil
                           '(;
-                            ("invariant\\|requires\\|ensures\\|preserves\\|trusted\\|pred\\|pure\\|forall\\|exists\\|assume\\|inhale\\|exhale\\|assert\\|ghost\\|implements\\|unfolding\\|fold\\|unfold\\|decreases" (0 font-lock-builtin-face))))
+                            ("invariant\\|requires\\|ensures\\|preserves\\|trusted\\|pred\\|pure\\|forall\\|exists\\|assume\\|apply\\|inhale\\|exhale\\|assert\\|ghost\\|implements\\|unfolding\\|fold\\|unfold\\|decreases" (0 font-lock-builtin-face))))
   (unless (member '(:eval (gobra-mode-line)) global-mode-string)
     (setq global-mode-string (append global-mode-string '((:eval (gobra-mode-line))))))
   (gobra-args-initialize))
@@ -347,8 +348,21 @@
   (setq-local gobra-args-set (cons "input" gobra-args-set))
   (setq-local gobra-args-of-args (cons (cons "input" (buffer-file-name (current-buffer))) gobra-args-of-args)))
 
-(defun gobra-args-serialize ()
-  "Return the arguments string."
+(defun gobra-insert-file-line (file-line args-of-args)
+  "FILE-LINE is a file with a corresponding line which we want to verify.  Insert that line to the corresponding file in ARGS-OF-ARGS."
+  (let ((file (car file-line))
+        (line (cdr file-line))
+        (files (split-string args-of-args " ")))
+    (apply 'concat
+           (map 'list
+                (lambda (f)
+                  (if (equal file f)
+                      (format "%s@%s " file line)
+                    (concat f " ")))
+                files))))
+
+(defun gobra-args-serialize (&optional file-line)
+  "Return the arguments string.  If the optional argument FILE-LINE is specified as a tuple (filename line), the specific line will be appended to the corresponding file for specific member verification."
   (let ((i gobra-args-set)
         (s ""))
     (while i
@@ -356,7 +370,10 @@
             (next (cdr i)))
         (setq s (format "%s --%s" s cur))
         (when (assoc cur gobra-args-that-need-args)
-          (setq s (format "%s %s" s (cdr (assoc cur gobra-args-of-args)))))
+          (let ((args-of-args (cdr (assoc cur gobra-args-of-args))))
+            (if (and (equal cur "input") file-line)
+                (setq args-of-args (gobra-insert-file-line file-line args-of-args)))
+            (setq s (format "%s %s" s args-of-args))))
         (setq i next)))
     s))
 
