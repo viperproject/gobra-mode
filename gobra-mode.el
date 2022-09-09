@@ -427,7 +427,7 @@
   (setq-local buffer-read-only nil)
   (erase-buffer)
   (goto-char (point-min))
-  (insert "Gobra argument selection buffer.\nCheck any argument needed with 'c'.\nAdd arguments to an argument with 'a'\nPrint documentation of argument with 'd'.\nSave configuraton with 's'.\nLoad configuration with 'l'.\nPress 'q' to exit.\n\n")
+  (insert "Gobra argument selection buffer.\nCheck any argument needed with 'c'.\nAdd arguments to an argument with 'a'\nEdit an argument of argument with 'e'\nPrint documentation of argument with 'd'.\nSave configuraton with 's'.\nLoad configuration with 'l'.\nPress 'q' to exit.\n\n")
   (let ((start-pos (point)))
     (let ((i gobra-args-doc))
       (while i
