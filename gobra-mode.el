@@ -67,6 +67,19 @@
 
 ;; logic
 
+(defun gobra-all-buffers ()
+  "Find all .go and .gobra buffers."
+  (map 'list
+       'car
+       (seq-filter
+        (lambda (x)
+          (when (cdr x)
+            (or (string-match ".*\\.gobra$" (cdr x)) (string-match ".*\\.go$" (cdr x)))))
+        (map 'list
+             (lambda (x)
+               (cons x (buffer-file-name x)))
+             (buffer-list)))))
+
 (defun gobra-find-gobra-buffer (file)
   "Find the buffer corresponding to FILE."
   (let ((b (seq-filter
@@ -155,8 +168,11 @@
              (useful (gobra-find-useful splitted)))
         (when useful
           (let ((numerrors (gobra-extract-num-errors (car useful))))
-            (with-current-buffer gobra-buffer
-              (seq-do #'delete-overlay gobra-highlight-overlays))
+            (map 'list
+                 (lambda (buf)
+                   (with-current-buffer buf
+                     (seq-do #'delete-overlay gobra-highlight-overlays)))
+                 (gobra-all-buffers))
             (if (equal numerrors 0)
                 (progn
                   (message "Program verified succesfully!")
@@ -174,8 +190,11 @@
              (useful (gobra-find-useful splitted)))
         (when useful
           (let (numerrors (gobra-extract-num-errors (car useful)))
-            (with-current-buffer gobra-buffer
-              (seq-do #'delete-overlay gobra-highlight-overlays))
+            (map 'list
+                 (lambda (buf)
+                   (with-current-buffer buf
+                     (seq-do #'delete-overlay gobra-highlight-overlays)))
+                 (gobra-all-buffers))
             (if (equal numerrors 0)
                 (progn
                   (message "Program verified succesfully!")
