@@ -24,7 +24,7 @@
 ;;; Commentary:
 
 ;; Defines syntax highlighting for the
-;; Viper language.
+;; Gobra language.
 
 ;;; Code:
 (defvar-local gobra-async-buffer nil "Keeps the async buffer in which gobra runs.")
@@ -220,6 +220,7 @@
     (setq-local gobra-is-verified 3)
     (let ((gb (current-buffer)))
       (with-current-buffer gobra-async-buffer
+        (gobra-output-mode)
         (setq-local gobra-buffer gb)))
     (let ((proc (get-buffer-process gobra-async-buffer)))
       (when (process-live-p proc)
@@ -713,13 +714,87 @@
   (define-key gobra-construct-args-mode-map (kbd "C-c C-k") 'gobra-construct-args-abort))
 
 (define-derived-mode gobra-construct-args-mode fundamental-mode
-  "gobra-args mode"
-  "Major mode for selecting arguments passed to gobra in a construction buffer"
+  "gobra-construct-args mode"
+  "Major mode for editing arguments passed to gobra in a construction buffer"
   (use-local-map gobra-construct-args-mode-map)
   (setq header-line-format
 	  (substitute-command-keys
 	   "Edit, then exit with `\\[gobra-construct-args-accept]' or abort with \
 `\\[gobra-construct-args-abort]'")))
+
+;; major mode for gobra output buffer
+
+(defun gobra-output-next-error ()
+  "Jumps to the next error in the gobra output buffer."
+  (interactive)
+  (let (c)
+    (save-excursion
+      (while (and (not (eobp)) (not c))
+        (forward-line)
+        (when (string-match ".*ERROR.*<.*:[0123456789]*:[0123456789]*>.*" (thing-at-point 'line))
+          (setq c (point)))))
+    (if c
+        (goto-char c)
+      (message "No further errors"))))
+
+(defun gobra-output-prev-error ()
+  "Jumps to the previous error in the gobra output buffer."
+  (interactive)
+  (let (c)
+    (save-excursion
+      (while (and (not (bobp)) (not c))
+        (forward-line -1)
+        (when (string-match ".*ERROR.*<.*:[0123456789]*:[0123456789]*>.*" (thing-at-point 'line))
+          (setq c (point)))))
+    (if c
+        (goto-char c)
+      (message "No further errors"))))
+
+(defun gobra-output-goto-error ()
+  "Jump to the error that corresponds to this line in the output buffer."
+  (interactive)
+  (let ((line (thing-at-point 'line)))
+    (let ((success (string-match ".*<\\(.*\\):\\([0123456789]*\\):[0123456789]*>.*" line)))
+      (when success
+        (let ((file (match-string 1 line))
+              (l (string-to-number (match-string 2 line))))
+          (when (and file l)
+            (let ((buf (gobra-find-gobra-buffer file)))
+              (when (not buf)
+                (setq buf (find-file file)))
+              (pop-to-buffer buf)
+              (goto-char (point-min))
+              (forward-line (1- l)))))))))
+
+(defvar gobra-output-mode-map nil "Keymap for gobra-construct-args.")
+
+(when (not gobra-output-mode-map)
+  (setq gobra-output-mode-map (make-sparse-keymap))
+  (define-key gobra-output-mode-map (kbd "n") 'gobra-output-next-error)
+  (define-key gobra-output-mode-map (kbd "p") 'gobra-output-prev-error)
+  (define-key gobra-output-mode-map (kbd "RET") 'gobra-output-goto-error))
+
+(defface gobra-output-error-face
+  '((t (:foreground "Red")))
+  "The face used to highlight errors in Gobra output.")
+
+(defface gobra-output-file-face
+  '((t (:foreground "Orange")))
+  "The face used to highlight errors in Gobra output.")
+
+(setq gobra-output-buffer-highlights
+      '(("ERROR" . ''gobra-output-error-face)
+        ("Gobra has found \\([0123456789]* error(s)\\)" 1 ''gobra-output-error-face)
+        ("<\\(.*:[0123456789]*:[0123456789]*\\)>" 1 ''gobra-output-file-face)
+        ("<.*:[0123456789]*:[0123456789]*>\\(.*\\)" 1 ''gobra-output-error-face)))
+
+(define-derived-mode gobra-output-mode shell-mode
+  "gobra-output mode"
+  "Major mode for interacting with gobra output"
+  :interactive nil
+  (setq font-lock-defaults '(gobra-output-buffer-highlights))
+  (use-local-map gobra-output-mode-map))
+
 ;; add .gobra files to auto-mode-alist and provide package
 
 ;;;###autoload
