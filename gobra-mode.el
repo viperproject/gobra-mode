@@ -67,6 +67,19 @@
 
 ;; logic
 
+(defun gobra-find-gobra-buffer (file)
+  "Find the buffer corresponding to FILE."
+  (let ((b (seq-filter
+            (lambda (x)
+              (when (cdr x)
+                (equal (cdr x) file)))
+            (map 'list
+                 (lambda (x)
+                   (cons x (buffer-file-name x)))
+                 (buffer-list)))))
+    (when b
+      (car (car b)))))
+
 (defun gobra-extract-num-errors (s)
   "Find number of errors reported by gobra in S."
   (string-match ".* - Gobra has found \\([0123456789]*\\) error(s).*" s)
@@ -75,78 +88,102 @@
         (string-to-number num)
       0)))
 
-(defun gobra-find-start-end (err)
-  "Find start and end position of ERR."
-  (string-match ".*<.*:\\([0123456789]*\\):\\([0123456789]*\\)>.*" err)
-  (let ((l (string-to-number (match-string 1 err)))
-        (c (string-to-number (match-string 2 err))))
-    (with-current-buffer gobra-buffer
-      (save-excursion
-        (beginning-of-buffer)
-        (forward-line (1- l))
-        (forward-char (1- c))
-        (let ((start (point)))
-          (end-of-line)
-          (cons start (point)))))))
+(defun gobra-parse-error (l)
+  "Parse error in line L."
+  (let ((success (string-match ".*<\\(.*\\):\\([0123456789]*\\):\\([0123456789]*\\)>\\(.*\\)" l)))
+    (when success
+      (let ((file (match-string 1 l))
+            (l (string-to-number (match-string 2 l)))
+            (c (string-to-number (match-string 3 l)))
+            (err (match-string 4 l)))
+        (when (and file l c err)
+          (let ((buf (gobra-find-gobra-buffer file)))
+            (when buf
+              (with-current-buffer buf
+                (setq-local gobra-is-verified 2)
+                (save-excursion
+                  (goto-char (point-min))
+                  (forward-line (1- l))
+                  (forward-char (1- c))
+                  (let ((start (point)))
+                    (end-of-line)
+                    (list start (point) file err)))))))))))
 
-(defun gobra-parse-error (data)
-  "Parse a gobra output line error in DATA."
-  (let ((err (car data))
-        (text (nth 1 data)))
-    (with-current-buffer gobra-buffer
-      (let* ((startend (gobra-find-start-end err))
-             (start (car startend))
-             (end (cdr startend)))
-        (let ((ov (make-overlay
-                   start
-                   end)))
-          (push ov gobra-highlight-overlays)
-          (overlay-put ov 'face 'gobra-error)
-          (overlay-put ov 'help-echo text)
-          (overlay-put ov
-                       'cursor-sensor-functions
-                       (list
-                        (lambda (window pos action)
-                          (when (eq action 'entered)
-                            (message "%s" text)))))
-          (message "%s" text))))))
+(defun gobra-parse-errors (data)
+  "Parse gobra output errors in DATA."
+  (map 'list
+       (lambda (l)
+         (let* ((info (gobra-parse-error l))
+                (start (car info))
+                (end (nth 1 info))
+                (file (nth 2 info))
+                (err (nth 3 info)))
+           (when info
+             (let ((buf (gobra-find-gobra-buffer file)))
+               (when buf
+                 (with-current-buffer buf
+                   (let ((ov (make-overlay
+                              start
+                              end)))
+                     (push ov gobra-highlight-overlays)
+                     (overlay-put ov 'face 'gobra-error)
+                     (overlay-put ov 'help-echo (substring-no-properties err))
+                     (overlay-put ov
+                                  'cursor-sensor-functions
+                                  (list
+                                   (lambda (window pos action)
+                                     (when (eq action 'entered)
+                                       (message "%s" (substring-no-properties err))))))
+                     (message "%s" (substring-no-properties err)))))))))
+       data))
+
+(defun gobra-find-useful (data)
+  "Find the useful part of gobra output in DATA."
+  (let (res)
+    (while data
+      (when (string-match ".* - Gobra has found \\([0123456789]*\\) error(s).*" (car data))
+        (setq res data)
+        (setq data nil))
+      (setq data (cdr data)))
+    res))
 
 (defun gobra-read-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish verification with SIGNAL."
   (with-current-buffer gobra-async-buffer
     (let ((out (buffer-string)))
       (let* ((splitted (split-string out "\n"))
-             (useful (cdr (cdr (cdr splitted))))
-             (numerrors (gobra-extract-num-errors (car useful))))
-        (message "NUM ERRORS: %s" numerrors)
-        (with-current-buffer gobra-buffer
-          (seq-do #'delete-overlay gobra-highlight-overlays))
-        (if (equal numerrors 0)
-            (progn
-              (message "Program verified succesfully!")
+             (useful (gobra-find-useful splitted)))
+        (when useful
+          (let ((numerrors (gobra-extract-num-errors (car useful))))
+            (with-current-buffer gobra-buffer
+              (seq-do #'delete-overlay gobra-highlight-overlays))
+            (if (equal numerrors 0)
+                (progn
+                  (message "Program verified succesfully!")
+                  (with-current-buffer gobra-buffer
+                    (setq-local gobra-is-verified 1)))
+              (gobra-parse-errors (cdr useful))
               (with-current-buffer gobra-buffer
-                (setq-local gobra-is-verified 1)))
-          (gobra-parse-error (cdr useful))
-          (with-current-buffer gobra-buffer
-            (setq-local gobra-is-verified 2)))))))
+                (setq-local gobra-is-verified 2)))))))))
 
 (defun gobra-printvpr-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish the production of vpr code with SIGNAL."
   (with-current-buffer gobra-async-buffer
     (let ((out (buffer-string)))
       (let* ((splitted (split-string out "\n"))
-             (useful (cdr (cdr splitted)))
-             (numerrors (gobra-extract-num-errors (car useful))))
-        (with-current-buffer gobra-buffer
-          (seq-do #'delete-overlay gobra-highlight-overlays))
-        (if (equal numerrors 0)
-            (progn
-              (message "Program verified succesfully!")
+             (useful (gobra-find-useful splitted)))
+        (when useful
+          (let (numerrors (gobra-extract-num-errors (car useful)))
+            (with-current-buffer gobra-buffer
+              (seq-do #'delete-overlay gobra-highlight-overlays))
+            (if (equal numerrors 0)
+                (progn
+                  (message "Program verified succesfully!")
+                  (with-current-buffer gobra-buffer
+                    (setq-local gobra-is-verified 1)))
+              (gobra-parse-errors (cdr useful))
               (with-current-buffer gobra-buffer
-                (setq-local gobra-is-verified 1)))
-          (gobra-parse-error (cdr useful))
-          (with-current-buffer gobra-buffer
-            (setq-local gobra-is-verified 2))))))
+                (setq-local gobra-is-verified 2))))))))
   (with-current-buffer gobra-buffer
     (find-file-other-window (concat (buffer-file-name) ".vpr"))
     (viperlanguage-mode)))
@@ -158,7 +195,7 @@
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
   (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
-         (b (format "%s" (async-shell-command (format "echo \"command: %s\"; echo ; time %s" cmd cmd)))))
+         (b (format "%s" (async-shell-command (format "echo \"command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -176,7 +213,7 @@
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
   (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize (cons (buffer-file-name) (line-number-at-pos)))))
-         (b (format "%s" (async-shell-command (format "echo \"command: %s\"; echo ; time %s" cmd cmd)))))
+         (b (format "%s" (async-shell-command (format "echo \"command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -196,7 +233,7 @@
                         " --printVpr "
                       ""))
          (cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
-         (b (format "%s" (async-shell-command (format "echo \"command: %s %s\"; echo ; time %s %s" cmd extra-arg cmd extra-arg)))))
+         (b (format "%s" (async-shell-command (format "echo \"command: %s %s\"; echo ; time %s %s" cmd extra-arg cmd extra-arg) (get-buffer-create "*Gobra Command Output*")))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
