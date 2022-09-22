@@ -32,6 +32,7 @@
 (defvar-local gobra-highlight-overlays nil "Keeps the highlight overlays of errors.")
 (defvar-local gobra-is-verified nil "Keeps the status of the program regarding the verification.\nIt is nil if the verification hasn't ran, 1 if the program is verified and 2 if it has failed to verify.")
 (defvar-local gobra-additional-arguments "" "Stores any additional arguments passed to gobra.")
+(defvar gobra-current-async-buffer nil "Holds the buffer where Gobra is currently running.")
 (defvar gobra-z3-path nil "Holds the path to Z3 binary.")
 (defvar gobra-jar-path nil "Holds the path to gobra jar file.")
 
@@ -162,7 +163,7 @@
 
 (defun gobra-read-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish verification with SIGNAL."
-  (with-current-buffer gobra-async-buffer
+  (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
     (let ((out (buffer-string)))
       (let* ((splitted (split-string out "\n"))
              (useful (gobra-find-useful splitted)))
@@ -184,7 +185,7 @@
 
 (defun gobra-printvpr-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish the production of vpr code with SIGNAL."
-  (with-current-buffer gobra-async-buffer
+  (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
     (let ((out (buffer-string)))
       (let* ((splitted (split-string out "\n"))
              (useful (gobra-find-useful splitted)))
@@ -217,6 +218,7 @@
          (b (format "%s" (async-shell-command (format "echo \"Gobra command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
+    (setq gobra-current-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
     (let ((gb (current-buffer)))
       (with-current-buffer gobra-async-buffer
@@ -236,6 +238,7 @@
          (b (format "%s" (async-shell-command (format "echo \"Gobra command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
+    (setq gobra-current-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
     (let ((gb (current-buffer)))
       (with-current-buffer gobra-async-buffer
@@ -256,6 +259,7 @@
          (b (format "%s" (async-shell-command (format "echo \"Gobra command: %s %s\"; echo ; time %s %s" cmd extra-arg cmd extra-arg) (get-buffer-create "*Gobra Command Output*")))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
+    (setq gobra-current-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
     (let ((gb (current-buffer)))
       (with-current-buffer gobra-async-buffer
@@ -788,7 +792,8 @@
 
 (setq gobra-output-buffer-highlights
       '(("ERROR" . ''gobra-output-error-face)
-        ("Gobra has found \\([0123456789]* error(s)\\)" 1 ''gobra-output-error-face)
+        ("Gobra has found \\([123456789][0123456789]* error(s)\\)" 1 ''gobra-output-error-face)
+        ("Gobra has found \\(0 error(s)\\)" 1 ''gobra-output-time-face)
         ("<\\(.*:[0123456789]*:[0123456789]*\\)>" 1 ''gobra-output-file-face)
         ("<.*:[0123456789]*:[0123456789]*>\\(.*\\)" 1 ''gobra-output-error-face)
         ("^\\(real\\|user\\|sys\\).*s" 0 ''gobra-output-time-face)
