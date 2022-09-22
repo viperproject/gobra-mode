@@ -249,6 +249,7 @@
     (setq-local gobra-is-verified 3)
     (let ((gb (current-buffer)))
       (with-current-buffer gobra-async-buffer
+        (gobra-output-mode)
         (setq-local gobra-buffer gb)))
     (let ((proc (get-buffer-process gobra-async-buffer)))
       (when (process-live-p proc)
@@ -272,6 +273,7 @@
     (setq-local gobra-is-verified 3)
     (let ((gb (current-buffer)))
       (with-current-buffer gobra-async-buffer
+        (gobra-output-mode)
         (setq-local gobra-buffer gb)))
     (let ((proc (get-buffer-process gobra-async-buffer)))
       (when (process-live-p proc)
