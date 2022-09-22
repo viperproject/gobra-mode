@@ -214,7 +214,7 @@
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
   (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
-         (b (format "%s" (async-shell-command (format "echo \"command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
+         (b (format "%s" (async-shell-command (format "echo \"Gobra command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -233,7 +233,7 @@
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
   (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize (cons (buffer-file-name) (line-number-at-pos)))))
-         (b (format "%s" (async-shell-command (format "echo \"command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
+         (b (format "%s" (async-shell-command (format "echo \"Gobra command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -253,7 +253,7 @@
                         " --printVpr "
                       ""))
          (cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
-         (b (format "%s" (async-shell-command (format "echo \"command: %s %s\"; echo ; time %s %s" cmd extra-arg cmd extra-arg) (get-buffer-create "*Gobra Command Output*")))))
+         (b (format "%s" (async-shell-command (format "echo \"Gobra command: %s %s\"; echo ; time %s %s" cmd extra-arg cmd extra-arg) (get-buffer-create "*Gobra Command Output*")))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq-local gobra-is-verified 3)
@@ -780,13 +780,19 @@
 
 (defface gobra-output-file-face
   '((t (:foreground "Orange")))
-  "The face used to highlight errors in Gobra output.")
+  "The face used to highlight files in Gobra output.")
+
+(defface gobra-output-time-face
+  '((t (:foreground "Green")))
+  "The face used to highlight time in Gobra output.")
 
 (setq gobra-output-buffer-highlights
       '(("ERROR" . ''gobra-output-error-face)
         ("Gobra has found \\([0123456789]* error(s)\\)" 1 ''gobra-output-error-face)
         ("<\\(.*:[0123456789]*:[0123456789]*\\)>" 1 ''gobra-output-file-face)
-        ("<.*:[0123456789]*:[0123456789]*>\\(.*\\)" 1 ''gobra-output-error-face)))
+        ("<.*:[0123456789]*:[0123456789]*>\\(.*\\)" 1 ''gobra-output-error-face)
+        ("^\\(real\\|user\\|sys\\).*s" 0 ''gobra-output-time-face)
+        ("^\\(Gobra command:\\) .*s" 1 ''gobra-output-time-face)))
 
 (define-derived-mode gobra-output-mode shell-mode
   "gobra-output mode"
