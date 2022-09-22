@@ -32,6 +32,7 @@
 (defvar-local gobra-highlight-overlays nil "Keeps the highlight overlays of errors.")
 (defvar-local gobra-is-verified nil "Keeps the status of the program regarding the verification.\nIt is nil if the verification hasn't ran, 1 if the program is verified and 2 if it has failed to verify.")
 (defvar-local gobra-additional-arguments "" "Stores any additional arguments passed to gobra.")
+(defvar gobra-output-buffer-prelude "echo \"Gobra output buffer actions:\"; echo \"For next error press 'n'\"; echo \"For previous error press 'p'\" ; echo \"For visiting current error press 'RET'\"" "Holds the stuff to print in the Gobra output buffer.")
 (defvar gobra-current-async-buffer nil "Holds the buffer where Gobra is currently running.")
 (defvar gobra-z3-path nil "Holds the path to Z3 binary.")
 (defvar gobra-jar-path nil "Holds the path to gobra jar file.")
@@ -164,6 +165,7 @@
 (defun gobra-read-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish verification with SIGNAL."
   (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
+    (read-only-mode 1)
     (let ((out (buffer-string)))
       (let* ((splitted (split-string out "\n"))
              (useful (gobra-find-useful splitted)))
@@ -186,6 +188,7 @@
 (defun gobra-printvpr-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish the production of vpr code with SIGNAL."
   (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
+    (read-only-mode 1)
     (let ((out (buffer-string)))
       (let* ((splitted (split-string out "\n"))
              (useful (gobra-find-useful splitted)))
@@ -215,7 +218,9 @@
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
   (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
-         (b (format "%s" (async-shell-command (format "echo \"Gobra command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
+         (buf (get-buffer-create "*Gobra Command Output*"))
+         (_ (with-current-buffer buf (read-only-mode 0)))
+         (b (format "%s" (async-shell-command (format "%s ; echo ; echo \"Gobra command: %s\"; echo ; time %s" gobra-output-buffer-prelude cmd cmd) buf))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq gobra-current-async-buffer (match-string 1 b))
@@ -235,7 +240,9 @@
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
   (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize (cons (buffer-file-name) (line-number-at-pos)))))
-         (b (format "%s" (async-shell-command (format "echo \"Gobra command: %s\"; echo ; time %s" cmd cmd) (get-buffer-create "*Gobra Command Output*")))))
+         (buf (get-buffer-create "*Gobra Command Output*"))
+         (_ (with-current-buffer buf (read-only-mode 0)))
+         (b (format "%s" (async-shell-command (format "%s ; echo ; echo \"Gobra command: %s\"; echo ; time %s" gobra-output-buffer-prelude cmd cmd) buf))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq gobra-current-async-buffer (match-string 1 b))
@@ -256,7 +263,9 @@
                         " --printVpr "
                       ""))
          (cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
-         (b (format "%s" (async-shell-command (format "echo \"Gobra command: %s %s\"; echo ; time %s %s" cmd extra-arg cmd extra-arg) (get-buffer-create "*Gobra Command Output*")))))
+         (buf (get-buffer-create "*Gobra Command Output*"))
+         (_ (with-current-buffer buf (read-only-mode 0)))
+         (b (format "%s" (async-shell-command (format "%s ; echo ; echo \"Gobra command: %s %s\"; echo ; time %s %s" gobra-output-buffer-prelude cmd extra-arg cmd extra-arg) buf))))
     (string-match "window [1234567890]* on \\(.*\\)>" b)
     (setq-local gobra-async-buffer (match-string 1 b))
     (setq gobra-current-async-buffer (match-string 1 b))
@@ -765,7 +774,7 @@
           (when (and file l)
             (let ((buf (gobra-find-gobra-buffer file)))
               (when (not buf)
-                (setq buf (find-file file)))
+                (setq buf (find-file-other-window file)))
               (pop-to-buffer buf)
               (goto-char (point-min))
               (forward-line (1- l)))))))))
@@ -804,6 +813,7 @@
   "Major mode for interacting with gobra output"
   :interactive nil
   (setq font-lock-defaults '(gobra-output-buffer-highlights))
+  (hl-line-mode)
   (use-local-map gobra-output-mode-map))
 
 ;; add .gobra files to auto-mode-alist and provide package
