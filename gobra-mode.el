@@ -34,6 +34,7 @@
 (defvar-local gobra-additional-arguments "" "Stores any additional arguments passed to gobra.")
 (defvar gobra-output-buffer-prelude "echo \"Gobra output buffer actions:\"; echo \"For next error press 'n'\"; echo \"For previous error press 'p'\" ; echo \"For visiting current error press 'RET'\"" "Holds the stuff to print in the Gobra output buffer.")
 (defvar gobra-current-async-buffer nil "Holds the buffer where Gobra is currently running.")
+(defvar gobra-development-path nil "Holds the path of the gobra development src directory.")
 (defvar gobra-z3-path nil "Holds the path to Z3 binary.")
 (defvar gobra-jar-path nil "Holds the path to gobra jar file.")
 
@@ -770,7 +771,7 @@
   (interactive)
   (let ((line (thing-at-point 'line)))
     (let ((success (string-match ".*<\\(.*\\):\\([0123456789]*\\):[0123456789]*>.*" line)))
-      (when success
+      (if success
         (let ((file (match-string 1 line))
               (l (string-to-number (match-string 2 line))))
           (when (and file l)
@@ -779,7 +780,18 @@
                 (setq buf (find-file-other-window file)))
               (pop-to-buffer buf)
               (goto-char (point-min))
-              (forward-line (1- l)))))))))
+              (forward-line (1- l)))))
+        (when gobra-development-path
+          (let ((success (string-match ".*\\(viper\\.gobra\\..*[ABCDEFGHIJKLMNOPQRSTUVWXYZ].*\\)\\..*(.*:\\([0123456789]*\\))" line)))
+            (when success
+              (let ((file (concat (file-name-as-directory gobra-development-path) (replace-regexp-in-string "\\." "/" (match-string 1 line)) ".scala"))
+                    (l (string-to-number (match-string 2 line))))
+                (message "file: %s\nline: %s\nfile exists: %s" file l (file-exists-p file))
+                (when (and file l (file-exists-p file))
+                  (let ((buf (find-file-other-window file)))
+                    (pop-to-buffer buf)
+                    (goto-char (point-min))
+                    (forward-line (1- l))))))))))))
 
 (defvar gobra-output-mode-map nil "Keymap for gobra-construct-args.")
 
