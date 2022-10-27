@@ -1,6 +1,6 @@
 * Gobra-mode for Emacs
 
-Adds support to the Emacs IDE for [[https://www.pm.inf.ethz.ch/research/gobra.html][Gobra]].
+Adds support to Emacs for [[https://www.pm.inf.ethz.ch/research/gobra.html][Gobra]].
 
 * Installation
 
