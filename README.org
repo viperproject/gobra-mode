@@ -38,7 +38,7 @@ The construction buffer for the arguments can be used to set, unset or modify th
 - ~s~: Save the current set of arguments (and their arguments) to a file.
 - ~l~: Load a configuration from a file.
 - ~q~: Exit and return to the Gobra buffer.
-- ~n~-~p~: Move up and down.
+- ~n~ - ~p~: Move up and down.
 
 When the verifier is running, it lives in an async command in a buffer by default called ~*Gobra Command Output*~. That buffer also supports some extra functionality, namely:
 
