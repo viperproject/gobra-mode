@@ -323,6 +323,27 @@
     (setq global-mode-string (append global-mode-string '((:eval (gobra-mode-line))))))
   (gobra-args-initialize))
 
+(define-minor-mode gobra-minor-mode
+  "Minor mode for gobra (used primarily in go files)."
+  nil
+  :lighter " Gobra"
+  :keymap (list
+           (cons (kbd "C-c g v") 'gobra-verify)
+           (cons (kbd "C-c g c") 'gobra-printvpr)
+           (cons (kbd "C-c g a") 'gobra-edit-args)
+           (cons (kbd "C-c g s") 'gobra-print-run-command)
+           (cons (kbd "C-c g f") 'gobra-verify-line))
+  (cursor-sensor-mode)
+  (gobra-args-initialize)
+  (font-lock-add-keywords nil
+                          '(;
+                            ("invariant\\|requires\\|ensures\\|preserves\\|trusted\\|pred\\|pure\\|forall\\|exists\\|assume\\|apply\\|inhale\\|exhale\\|assert\\|ghost\\|implements\\|unfolding\\|fold\\|unfold\\|decreases" (0 font-lock-builtin-face))))
+
+  (if (fboundp 'font-lock-flush)
+      (font-lock-flush)
+    (when font-lock-mode
+      (with-no-warnings (font-lock-fontify-buffer)))))
+
 ;; argument selection buffer major mode
 
 (defvar gobra-args-doc
