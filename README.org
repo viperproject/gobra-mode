@@ -44,7 +44,7 @@ When the verifier is running, it lives in an async command in a buffer by defaul
 
 - ~n~: Go to the next reported error.
 - ~p~: Go to the previous reported error.
-- ~RET~: Go to the location of the error reported under the cursor at the corresponding file. If the file is not open, it is opened.
+- ~RET~: Go to the location of the error reported under the cursor at the corresponding file. If the file is not open, it is opened. If the cursor is over an error of the Gobra implementation, ~RET~ opens the corresponding file where the exception was raised. This only works if ~gobra-development-path~ is set to point to the src directory of Gobra.
 
 When the Gobra command terminates, the errors are highlighted in the already open buffers that are getting verified.
 
