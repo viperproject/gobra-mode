@@ -24,6 +24,42 @@ Then, add the following lines in your init.el.
 
 Default keybindings:
 - ~C-c C-v~: Verifies the file corresponding to the current buffer.
-- ~C-c C-g~: Goifies the current buffer.
 - ~C-c C-c~: Opens the generated Viper code in a new buffer.
 - ~C-c C-a~: Spawns a construction buffer through which the arguments passed to gobra are manipulated.
+- ~C-c C-s~: Gobra mode creates the command that Gobra should run serializing the arguments and copying it to the kill-ring. Useful if working with the sbt shell of Gobra directly.
+- ~C-c C-f~: Verify the function under the cursor only. This assumes the arguments explicitly have the current file for verification (not its directory or package).
+
+The construction buffer for the arguments can be used to set, unset or modify the existing arguments of Gobra. It contains a checklist of possible Gobra arguments for which the following operations are defined:
+
+- ~c~: Set or unset the current argument. If the argument has itself arguments, the user is prompted to fill them.
+- ~a~: Add arguments to an already set argument.
+- ~e~: Spawn a buffer to edit the arguments of this argument by hand.
+- ~d~: Print documentation about the current argument.
+- ~s~: Save the current set of arguments (and their arguments) to a file.
+- ~l~: Load a configuration from a file.
+- ~q~: Exit and return to the Gobra buffer.
+- ~n~-~p~: Move up and down.
+
+When the verifier is running, it lives in an async command in a buffer by default called ~*Gobra Command Output*~. That buffer also supports some extra functionality, namely:
+
+- ~n~: Go to the next reported error.
+- ~p~: Go to the previous reported error.
+- ~RET~: Go to the location of the error reported under the cursor at the corresponding file. If the file is not open, it is opened.
+
+When the Gobra command terminates, the errors are highlighted in the already open buffers that are getting verified.
+
+* Minor mode
+
+Since Gobra can be used in ~.go~ files either with the default syntax or hidden behind comments with the ~// @~ or ~/*@ ... @*/~ forms, a minor mode for Gobra is defined. Its keywords are by default:
+
+- ~C-c g v~: Verifies the file corresponding to the current buffer.
+- ~C-c g c~: Opens the generated Viper code in a new buffer.
+- ~C-c g a~: Spawns a construction buffer through which the arguments passed to gobra are manipulated.
+- ~C-c g s~: Gobra mode creates the command that Gobra should run serializing the arguments and copying it to the kill-ring. Useful if working with the sbt shell of Gobra directly.
+- ~C-c g f~: Verify the function under the cursor only. This assumes the arguments explicitly have the current file for verification (not its directory or package).
+
+The minor mode can be enabled automatically when a ~.go~ file is opened with:
+
+#+begin_src emacs-lisp
+  (add-hook 'go-mode-hook 'gobra-minor-mode)
+#+end_src
