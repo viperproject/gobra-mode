@@ -37,6 +37,7 @@
 (defvar gobra-development-path nil "Holds the path of the gobra development src directory.")
 (defvar gobra-z3-path nil "Holds the path to Z3 binary.")
 (defvar gobra-jar-path nil "Holds the path to gobra jar file.")
+(defvar gobra-actions-before-go-mode (lambda () nil) "Function ran before the go mode hooks kick in.")
 
 ;; faces
 
@@ -314,14 +315,17 @@
 (define-derived-mode gobra-mode go-mode
   "gobra mode"
   "Major mode for editing Go programs verified by Gobra"
-  (cursor-sensor-mode)
-  (setq global-mode-string (or global-mode-string '("")))
-  (font-lock-add-keywords nil
-                          '(;
-                            ("invariant\\|requires\\|ensures\\|preserves\\|trusted\\|pred\\|pure\\|forall\\|exists\\|assume\\|apply\\|inhale\\|exhale\\|assert\\|ghost\\|implements\\|unfolding\\|fold\\|unfold\\|decreases" (0 font-lock-builtin-face))))
-  (unless (member '(:eval (gobra-mode-line)) global-mode-string)
-    (setq global-mode-string (append global-mode-string '((:eval (gobra-mode-line))))))
-  (gobra-args-initialize))
+  (delay-mode-hooks
+    (funcall gobra-actions-before-go-mode)
+    (cursor-sensor-mode)
+    (setq global-mode-string (or global-mode-string '("")))
+    (font-lock-add-keywords nil
+                            '(;
+                              ("invariant\\|requires\\|ensures\\|preserves\\|trusted\\|pred\\|pure\\|forall\\|exists\\|assume\\|apply\\|inhale\\|exhale\\|assert\\|ghost\\|implements\\|unfolding\\|fold\\|unfold\\|decreases" (0 font-lock-builtin-face))))
+    (unless (member '(:eval (gobra-mode-line)) global-mode-string)
+      (setq global-mode-string (append global-mode-string '((:eval (gobra-mode-line))))))
+    (gobra-args-initialize))
+  (run-mode-hooks))
 
 (define-minor-mode gobra-minor-mode
   "Minor mode for gobra (used primarily in go files)."

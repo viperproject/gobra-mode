@@ -63,3 +63,33 @@ The minor mode can be enabled automatically when a ~.go~ file is opened with:
 #+begin_src emacs-lisp
   (add-hook 'go-mode-hook 'gobra-minor-mode)
 #+end_src
+
+* Overriding Go mode hooks
+
+~gobra-mode~ is a derived mode from ~go-mode~. This means that when opening a ~.gobra~ file the ~go-mode-hook~ functions will be invoked. This creates a problem for example with the use of LSP mode if it is configured to start automatically for go files because there is no LSP backend for Gobra. To override that hook a local variable ~gobra-actions-before-go-mode~ is defined which holds a function with stuff to do before the ~go-mode~ hooked functions run. The following hack is then possible to stop LSP from starting in a Gobra buffer:
+
+First define a buffer-local variable:
+#+begin_src emacs-lisp
+  (defvar-local my/conditional-lsp-flag t)
+#+end_src
+
+Then define a function starting LSP when that variable is true:
+#+begin_src emacs-lisp
+  (defun my/conditional-lsp ()
+    (when my/conditional-lsp-flag
+      (lsp)))
+#+end_src
+
+Hook this to ~go-mode~ instead of just LSP:
+#+begin_src emacs-lisp
+  (add-hook go-mode-hook 'my/conditional-lsp)
+#+end_src
+
+Use the ~gobra-actions-before-go-mode~ variable to turn the local variable to nil:
+#+begin_src emacs-lisp
+  (setq gobra-actions-before-go-mode
+        (lambda ()
+          (setq-local my/conditional-lsp-flag nil)))
+#+end_src
+
+Now whenever a ~.gobra~ file is opened, ~lsp~ won't be invoked.
