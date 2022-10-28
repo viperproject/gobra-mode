@@ -443,7 +443,7 @@
 
 (defun gobra-args-initialize ()
   "Set the initial value of set of arguments and arguments of arguments variables."
-  (when (not (member arg gobra-args-set))
+  (when (not (member "input" gobra-args-set))
     (setq-local gobra-args-set (cons "input" gobra-args-set))
     (setq-local gobra-args-of-args (cons (cons "input" (buffer-file-name (current-buffer))) gobra-args-of-args))))
 
