@@ -443,8 +443,9 @@
 
 (defun gobra-args-initialize ()
   "Set the initial value of set of arguments and arguments of arguments variables."
-  (setq-local gobra-args-set (cons "input" gobra-args-set))
-  (setq-local gobra-args-of-args (cons (cons "input" (buffer-file-name (current-buffer))) gobra-args-of-args)))
+  (when (not (member arg gobra-args-set))
+    (setq-local gobra-args-set (cons "input" gobra-args-set))
+    (setq-local gobra-args-of-args (cons (cons "input" (buffer-file-name (current-buffer))) gobra-args-of-args))))
 
 (defun gobra-insert-file-line (file-line args-of-args)
   "FILE-LINE is a file with a corresponding line which we want to verify.  Insert that line to the corresponding file in ARGS-OF-ARGS."
