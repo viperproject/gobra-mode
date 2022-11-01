@@ -1,6 +1,12 @@
 * Gobra-mode for Emacs
 
-Adds support to Emacs for [[https://www.pm.inf.ethz.ch/research/gobra.html][Gobra]].
+Adds support to Emacs for [[https://www.pm.inf.ethz.ch/research/gobra.html][Gobra]]. Features include:
+- Syntax highlighting for Gobra keywords.
+- Interface to the Gobra executable.
+- Error highlighting after running Gobra.
+- Jump to error functionality.
+- Interface for manipulating Gobra arguments.
+- Folding and unfolding ghost code blocks in ~.go~ files.
 
 * Installation
 
@@ -12,7 +18,7 @@ To install it, one must clone the repository:
   git clone git@github.com:Dspil/gobra-mode.git
 #+END_SRC
 
-Then, add the following lines in your init.el.
+Then, add the following lines in your init file.
 
 #+BEGIN_SRC emacs-lisp
   (add-to-list 'load-path "<gobra-mode repo path>")
@@ -22,12 +28,14 @@ Then, add the following lines in your init.el.
 #+END_SRC
 * Usage
 
-Default keybindings:
-- ~C-c C-v~: Verifies the file corresponding to the current buffer.
-- ~C-c C-c~: Opens the generated Viper code in a new buffer.
-- ~C-c C-a~: Spawns a construction buffer through which the arguments passed to gobra are manipulated.
-- ~C-c C-s~: Gobra mode creates the command that Gobra should run serializing the arguments and copying it to the kill-ring. Useful if working with the sbt shell of Gobra directly.
-- ~C-c C-f~: Verify the function under the cursor only. This assumes the arguments explicitly have the current file for verification (not its directory or package).
+Default keybindings provided by the gobra minor mode:
+- ~C-c g v~: Verifies the file corresponding to the current buffer.
+- ~C-c g c~: Opens the generated Viper code in a new buffer.
+- ~C-c g a~: Spawns a construction buffer through which the arguments passed to gobra are manipulated.
+- ~C-c g s~: Gobra mode creates the command that Gobra should run serializing the arguments and copying it to the kill-ring. Useful if working with the sbt shell of Gobra directly.
+- ~C-c g f~: Verify the function under the cursor only. This assumes the arguments explicitly have the current file for verification (not its directory or package).
+- ~C-c g h~: Fold or unfold ghost code chunk under cursor (works for ~.go~ files where the comment syntax (~// @~) is used.
+- ~C-c g j~: Unfold every folded piece of ghost code in the current buffer.
 
 The construction buffer for the arguments can be used to set, unset or modify the existing arguments of Gobra. It contains a checklist of possible Gobra arguments for which the following operations are defined:
 
@@ -50,14 +58,6 @@ When the Gobra command terminates, the errors are highlighted in the already ope
 
 * Minor mode
 
-Since Gobra can be used in ~.go~ files either with the default syntax or hidden behind comments with the ~// @~ or ~/*@ ... @*/~ forms, a minor mode for Gobra is defined. Its keywords are by default:
-
-- ~C-c g v~: Verifies the file corresponding to the current buffer.
-- ~C-c g c~: Opens the generated Viper code in a new buffer.
-- ~C-c g a~: Spawns a construction buffer through which the arguments passed to gobra are manipulated.
-- ~C-c g s~: Gobra mode creates the command that Gobra should run serializing the arguments and copying it to the kill-ring. Useful if working with the sbt shell of Gobra directly.
-- ~C-c g f~: Verify the function under the cursor only. This assumes the arguments explicitly have the current file for verification (not its directory or package).
-
 The minor mode can be enabled automatically when a ~.go~ file is opened with:
 
 #+begin_src emacs-lisp
@@ -66,7 +66,7 @@ The minor mode can be enabled automatically when a ~.go~ file is opened with:
 
 * Overriding Go mode hooks
 
-~gobra-mode~ is a derived mode from ~go-mode~. This means that when opening a ~.gobra~ file the ~go-mode-hook~ functions will be invoked. This creates a problem for example with the use of LSP mode if it is configured to start automatically for go files because there is no LSP backend for Gobra. To override that hook a local variable ~gobra-actions-before-go-mode~ is defined which holds a function with stuff to do before the ~go-mode~ hooked functions run. The following hack is then possible to stop LSP from starting in a Gobra buffer:
+~gobra-mode~ is a derived mode from ~go-mode~. This means that when opening a ~.gobra~ file the ~go-mode-hook~ functions will be invoked. This creates a problem for example with the use of LSP mode if it is configured to start automatically for go files because there is no LSP backend for Gobra. To override that hook, a local variable ~gobra-actions-before-go-mode~ is defined which holds a function with stuff to do before the ~go-mode~ hooked functions run. The following hack is then possible to stop LSP from starting in a Gobra buffer:
 
 First define a buffer-local variable:
 #+begin_src emacs-lisp

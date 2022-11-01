@@ -38,6 +38,7 @@
 (defvar gobra-z3-path nil "Holds the path to Z3 binary.")
 (defvar gobra-jar-path nil "Holds the path to gobra jar file.")
 (defvar gobra-actions-before-go-mode (lambda () nil) "Function ran before the go mode hooks kick in.")
+(defvar-local gobra-ghost-overlays nil "Holds the overlays for ghost code folding.")
 
 ;; faces
 
@@ -300,17 +301,87 @@
             (concat "[" (propertize "Verifying..." 'face 'gobra-notran-face) "]"))))
     ""))
 
-(defvar gobra-mode-map nil "Keymap for gobra-mode.")
+;; Gobra ghost code folding and unfolding (comments only)
+
+(defun gobra-is-annotation-line ()
+  "Determine if the current line is annotation or not."
+  (string-match-p "^[[:blank:]]*// ?@.*" (thing-at-point 'line)))
+
+(defun gobra-expand-ghost-region ()
+  "Select a chunk of ghost code that has the cursor inside."
+  (if (gobra-is-annotation-line)
+    (save-excursion
+      (let ((orig (point))
+            (forward (progn (end-of-line) (point)))
+            (backward (progn (beginning-of-line) (point))))
+        (forward-line)
+        (while (and (gobra-is-annotation-line) (not (equal (point) (point-max))))
+          (setq forward (progn (end-of-line) (point)))
+          (forward-line))
+        (when (gobra-is-annotation-line)
+          (setq forward (progn (end-of-line) (point))))
+        (goto-char orig)
+        (forward-line -1)
+        (while (and (gobra-is-annotation-line) (not (equal (point) (point-min))))
+          (setq backward (progn (beginning-of-line) (point)))
+          (forward-line -1))
+        (when (gobra-is-annotation-line)
+          (setq backward (progn (beginning-of-line) (point))))
+        (if (and forward backward)
+            (cons backward forward)
+          nil)))
+    nil))
+
+(defun gobra-hide ()
+  "Hide the region with ghost code under cursor."
+  (let* ((region (gobra-expand-ghost-region))
+         (start (car region))
+         (end (cdr region))
+         ov)
+    (when region
+      (setq ov (make-overlay start end))
+      (push ov gobra-ghost-overlays)
+      (overlay-put ov 'display (propertize "ghost..." 'face 'font-lock-comment-face))
+      (overlay-put ov 'invisible t))))
+
+(defun gobra-show-all ()
+  "Show all the hidden regions with ghost code."
+  (interactive)
+  (seq-do #'delete-overlay gobra-ghost-overlays)
+  (setq-local gobra-ghost-overlays nil))
+
+(defun gobra-show ()
+  "Show the hidden ghost code near cursor."
+  (let* ((data (gobra-show-helper gobra-ghost-overlays nil nil))
+         (newl (car data))
+         (change (cdr data)))
+    (if change
+        (progn
+          (setq-local gobra-ghost-overlays newl)
+          t)
+      nil)))
+
+(defun gobra-show-helper (l change newl)
+  "Helper for gobra-show.  L is the list of overlays.  CHANGE is t when a change has occured.  NEWL is the aggregation list for tail recursion."
+  (if l
+    (let ((start (overlay-start (car l)))
+          (end (overlay-end (car l))))
+      (if (or (> 2 (abs (- (point) start))) (> 2 (abs (- (point) end))))
+          (progn (delete-overlay (car l))
+                 (gobra-show-helper (cdr l) t newl))
+        (gobra-show-helper (cdr l) change (cons (car l) newl))))
+    (cons newl change)))
+
+(defun gobra-fold-unfold ()
+  "Folds or unfolds the ghost code near point."
+  (interactive)
+  (unless (gobra-show)
+    (gobra-hide)))
+
+;; Keymaps
+
 (defvar-local gobra-args-set nil "Arguments set for gobra executable.")
 (defvar-local gobra-args-of-args nil "Arguments of gobra arguments.")
-
-(when (not gobra-mode-map)
-  (setq gobra-mode-map (make-sparse-keymap))
-  (define-key gobra-mode-map (kbd "C-c C-v") 'gobra-verify)
-  (define-key gobra-mode-map (kbd "C-c C-c") 'gobra-printvpr)
-  (define-key gobra-mode-map (kbd "C-c C-a") 'gobra-edit-args)
-  (define-key gobra-mode-map (kbd "C-c C-s") 'gobra-print-run-command)
-  (define-key gobra-mode-map (kbd "C-c C-f") 'gobra-verify-line))
 
 (define-derived-mode gobra-mode go-mode
   "gobra mode"
@@ -336,7 +407,9 @@
            (cons (kbd "C-c g c") 'gobra-printvpr)
            (cons (kbd "C-c g a") 'gobra-edit-args)
            (cons (kbd "C-c g s") 'gobra-print-run-command)
-           (cons (kbd "C-c g f") 'gobra-verify-line))
+           (cons (kbd "C-c g f") 'gobra-verify-line)
+           (cons (kbd "C-c g h") 'gobra-fold-unfold)
+           (cons (kbd "C-c g j") 'gobra-show-all))
   (cursor-sensor-mode)
   (gobra-args-initialize)
   (font-lock-add-keywords nil
