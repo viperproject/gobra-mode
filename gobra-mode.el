@@ -291,7 +291,7 @@
 
 (defun gobra-mode-line ()
   "Return the mode line string."
-  (if (equal major-mode 'gobra-mode)
+  (if gobra-minor-mode
       (if (not gobra-is-verified)
           (concat "[" (propertize "Unknown" 'face 'gobra-notran-face) "]")
         (if (equal gobra-is-verified 1)
