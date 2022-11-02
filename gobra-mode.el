@@ -906,11 +906,11 @@
             (when success
               (let ((file (concat (file-name-as-directory gobra-development-path) (replace-regexp-in-string "\\." "/" (match-string 1 line)) ".scala"))
                     (l (string-to-number (match-string 2 line))))
-                (message "file: %s\nline: %s\nfile exists: %s" file l (file-exists-p file))
                 (when (and file l (file-exists-p file))
                   (let ((buf (find-file-other-window file)))
                     (pop-to-buffer buf)
                     (goto-char (point-min))
+                    (setq gobra-is-verified 2)
                     (forward-line (1- l))))))))))))
 
 (defvar gobra-output-mode-map nil "Keymap for gobra-construct-args.")
