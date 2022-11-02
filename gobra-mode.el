@@ -122,7 +122,10 @@
                 (save-excursion
                   (goto-char (point-min))
                   (forward-line (1- l))
-                  (forward-char (1- c))
+                  (let ((curline (thing-at-point 'line)))
+                    (forward-char (if (string-match "^[[:blank:]]*//\\( ?\\)@.*" curline)
+                                      (+ (+ 3 (length (match-string 1 curline))) (1- c))
+                                    (1- c))))
                   (let ((start (point)))
                     (end-of-line)
                     (list start (point) file err)))))))))))
