@@ -389,14 +389,30 @@
   (delay-mode-hooks
     (funcall gobra-actions-before-go-mode)
     (cursor-sensor-mode)
-    (setq global-mode-string (or global-mode-string '("")))
-    (font-lock-add-keywords nil
-                            '(;
-                              ("invariant\\|requires\\|ensures\\|preserves\\|trusted\\|pred\\|pure\\|forall\\|exists\\|assume\\|apply\\|inhale\\|exhale\\|assert\\|ghost\\|implements\\|unfolding\\|fold\\|unfold\\|decreases" (0 font-lock-builtin-face))))
-    (unless (member '(:eval (gobra-mode-line)) global-mode-string)
-      (setq global-mode-string (append global-mode-string '((:eval (gobra-mode-line))))))
     (gobra-args-initialize))
   (run-mode-hooks))
+
+(defvar gobra-keywords '("invariant"
+                         "requires"
+                         "ensures"
+                         "preserves"
+                         "trusted"
+                         "pred"
+                         "pure"
+                         "forall"
+                         "exists"
+                         "assume"
+                         "apply"
+                         "inhale"
+                         "exhale"
+                         "assert"
+                         "ghost"
+                         "implements"
+                         "unfolding"
+                         "fold"
+                         "unfold"
+                         "decreases")
+  "Holds all the gobra keywords which should be highlighted.")
 
 (define-minor-mode gobra-minor-mode
   "Minor mode for gobra (used primarily in go files)."
@@ -412,14 +428,16 @@
            (cons (kbd "C-c g j") 'gobra-show-all))
   (cursor-sensor-mode)
   (gobra-args-initialize)
-  (font-lock-add-keywords nil
-                          '(;
-                            ("invariant\\|requires\\|ensures\\|preserves\\|trusted\\|pred\\|pure\\|forall\\|exists\\|assume\\|apply\\|inhale\\|exhale\\|assert\\|ghost\\|implements\\|unfolding\\|fold\\|unfold\\|decreases" (0 font-lock-builtin-face))))
-
+  (font-lock-add-keywords nil (list
+                               (cons (concat "\\<" (regexp-opt gobra-keywords) "\\>")
+                                     '((0 font-lock-builtin-face)))))
   (if (fboundp 'font-lock-flush)
       (font-lock-flush)
     (when font-lock-mode
-      (with-no-warnings (font-lock-fontify-buffer)))))
+      (with-no-warnings (font-lock-fontify-buffer))))
+  (setq global-mode-string (or global-mode-string '("")))
+  (unless (member '(:eval (gobra-mode-line)) global-mode-string)
+    (setq global-mode-string (append global-mode-string '((:eval (gobra-mode-line)))))))
 
 ;; argument selection buffer major mode
 
