@@ -10,12 +10,12 @@ Adds support to Emacs for [[https://www.pm.inf.ethz.ch/research/gobra.html][Gobr
 
 * Installation
 
-This package is under heavy development. Thus, it is not published in any package archives.
+This package is under development (many changes may be non backwards compatible). Thus, it is not published in any package archives.
 
 To install it, one must clone the repository:
 
 #+BEGIN_SRC shell
-  git clone git@github.com:Dspil/gobra-mode.git
+  git clone git@github.com:viperproject/gobra-mode.git
 #+END_SRC
 
 Then, add the following lines in your init file.
@@ -64,6 +64,8 @@ The minor mode can be enabled automatically when a ~.go~ file is opened with:
   (add-hook 'go-mode-hook 'gobra-minor-mode)
 #+end_src
 
+Note that the minor mode is responsible for almost everything so it should be enabled for ~.gobra~ files as well. ~gobra-mode~ however is a major mode deriving from ~go-mode~ so hooking the minor mode to ~go-mode~ will enable it for Gobra buffers as well.
+
 * Overriding Go mode hooks
 
 ~gobra-mode~ is a derived mode from ~go-mode~. This means that when opening a ~.gobra~ file the ~go-mode-hook~ functions will be invoked. This creates a problem for example with the use of LSP mode if it is configured to start automatically for go files because there is no LSP backend for Gobra. To override that hook, a local variable ~gobra-actions-before-go-mode~ is defined which holds a function with stuff to do before the ~go-mode~ hooked functions run. The following hack is then possible to stop LSP from starting in a Gobra buffer:
@@ -93,3 +95,6 @@ Use the ~gobra-actions-before-go-mode~ variable to turn the local variable to ni
 #+end_src
 
 Now whenever a ~.gobra~ file is opened, ~lsp~ won't be invoked.
+
+* Who do I talk to?
+This project is maintained by [[https://github.com/Dspil][Dionisios Spiliopoulos]]
