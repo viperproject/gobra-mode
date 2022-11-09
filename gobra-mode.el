@@ -407,18 +407,41 @@
                          "decreases")
   "Holds all the gobra keywords which should be highlighted.")
 
+(if (fboundp 'defhydra)
+    (defhydra gobra-minor-mode-hydra (:hint
+                                      nil
+                                      :exit
+                                      t)
+      "
+^Verification^           ^Arguments^           ^Folding^        
+^^^^^^^^---------------------------------------------------------
+_v_: verify              _a_: edit args        _h_: fold/unfold       
+_f_: verify function     _s_: print command    _j_: show all          
+_c_: verify + viper
+"
+      ("v" gobra-verify)
+      ("a" gobra-edit-args)
+      ("s" gobra-print-run-command)
+      ("h" gobra-fold-unfold)
+      ("j" gobra-show-all)
+      ("f" gobra-verify-line)
+      ("c" gobra-printvpr)
+      ("q" nil "cancel" :color blue)))
+
 (define-minor-mode gobra-minor-mode
   "Minor mode for gobra (used primarily in go files)."
   nil
   :lighter " Gobra"
-  :keymap (list
-           (cons (kbd "C-c g v") 'gobra-verify)
-           (cons (kbd "C-c g c") 'gobra-printvpr)
-           (cons (kbd "C-c g a") 'gobra-edit-args)
-           (cons (kbd "C-c g s") 'gobra-print-run-command)
-           (cons (kbd "C-c g f") 'gobra-verify-line)
-           (cons (kbd "C-c g h") 'gobra-fold-unfold)
-           (cons (kbd "C-c g j") 'gobra-show-all))
+  :keymap (if (not (fboundp 'defhydra))
+              (list
+               (cons (kbd "C-c g v") 'gobra-verify)
+               (cons (kbd "C-c g c") 'gobra-printvpr)
+               (cons (kbd "C-c g a") 'gobra-edit-args)
+               (cons (kbd "C-c g s") 'gobra-print-run-command)
+               (cons (kbd "C-c g f") 'gobra-verify-line)
+               (cons (kbd "C-c g h") 'gobra-fold-unfold)
+               (cons (kbd "C-c g j") 'gobra-show-all))
+            (list (cons (kbd "C-c g") 'gobra-minor-mode-hydra/body)))
   (cursor-sensor-mode)
   (gobra-args-initialize)
   (font-lock-add-keywords nil (list
