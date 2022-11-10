@@ -557,6 +557,35 @@ _c_: verify + viper
     (setq-local gobra-args-set (cons "input" gobra-args-set))
     (setq-local gobra-args-of-args (cons (cons "input" (buffer-file-name (current-buffer))) gobra-args-of-args))))
 
+(defun gobra-get-gobra-files (dir)
+  "Get all '.go' or '.gobra' files in DIR."
+  (let ((files (seq-filter (lambda (f) (and (string-match-p "\\(.+\\.go\\)\\|\\(.*\\.gobra\\)" f) (not (file-directory-p f)))) (directory-files dir t))))
+    (apply 'concatenate (cons 'string (map 'list (lambda (f) (concat f " ")) files)))))
+
+(defun gobra-transform-args (file-line)
+  "Transforms the arguments opening the directories if FILE-LINE is set and leaking everything to input."
+  (if file-line
+      (progn
+        (let ((args-set gobra-args-set)
+              (args-of-args gobra-args-of-args))
+          (when (member "directory" args-set)
+            (when (not (member "input" args-set))
+              (setq args-set (cons "input" args-set)))
+            (setq args-set (delete "directory" args-set))
+            (let ((new-input " ")
+                  (dirs (cdr (assoc "directory" args-of-args))))
+              (when dirs
+                (let ((dirs-list (split-string dirs " ")))
+                  (while dirs-list
+                    (setq new-input (concat new-input (gobra-get-gobra-files (car dirs-list)) " "))
+                    (setq dirs-list (cdr dirs-list))))
+                (let ((input-sofar (assoc "input" args-of-args)))
+                  (when input-sofar
+                    (setq new-input (concat input-sofar new-input))))
+                (setq args-of-args (cons (cons "input" new-input) (assoc-delete-all "directory" (assoc-delete-all "input" args-of-args)))))))
+          (cons args-set args-of-args)))
+    (cons gobra-args-set gobra-args-of-args)))
+
 (defun gobra-insert-file-line (file-line args-of-args)
   "FILE-LINE is a file with a corresponding line which we want to verify.  Insert that line to the corresponding file in ARGS-OF-ARGS."
   (let ((file (car file-line))
@@ -572,14 +601,16 @@ _c_: verify + viper
 
 (defun gobra-args-serialize (&optional file-line)
   "Return the arguments string.  If the optional argument FILE-LINE is specified as a tuple (filename line), the specific line will be appended to the corresponding file for specific member verification."
-  (let ((i gobra-args-set)
-        (s ""))
+  (let* ((transformed (gobra-transform-args file-line))
+         (i (car transformed))
+         (all-args-of-args (cdr transformed))
+         (s ""))
     (while i
       (let ((cur (car i))
             (next (cdr i)))
         (setq s (format "%s --%s" s cur))
         (when (assoc cur gobra-args-that-need-args)
-          (let ((args-of-args (cdr (assoc cur gobra-args-of-args))))
+          (let ((args-of-args (cdr (assoc cur all-args-of-args))))
             (if (and (equal cur "input") file-line)
                 (setq args-of-args (gobra-insert-file-line file-line args-of-args)))
             (setq s (format "%s %s" s args-of-args))))
