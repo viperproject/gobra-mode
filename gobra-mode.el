@@ -467,7 +467,7 @@ _c_: verify + viper
     ("chop" . "Needs <arg>. Number of parts the generated verification condition is split into (at most)")
     ("debug" . "Output additional debug information")
     ("disableMoreCompleteExhale" . "Disables the flag --enableMoreCompleteExhale passed by default to Silicon")
-    ("enableLazyImport" "Enforces that Gobra parses depending packages only when necessary. Note that this disables certain language features such as global variables.")
+    ("enableLazyImport" . "Enforces that Gobra parses depending packages only when necessary. Note that this disables certain language features such as global variables.")
     ("directory" . "Needs <arg...>. List of directories to verify")
     ("eraseGhost" . "Print the input program without ghost code")
     ("excludePackages" . "Needs <arg...>. Packages to ignore. These packages will not be verified, even if they are found in the specified directories.")
