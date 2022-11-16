@@ -371,6 +371,57 @@
   (unless (gobra-show)
     (gobra-hide)))
 
+(defun gobra-get-longest-spec-token (start end)
+  "Return nil if not currently in a function contract.  Otherwise get the longest token in region START - END."
+  (save-excursion
+    (let (flag
+          (m 0))
+      (goto-char start)
+      (while (and (<= (point) end) (not (eobp)))
+        (when (string-match-p "^[[:blank:]]*// ?@ requires .*" (thing-at-point 'line))
+          (when (not (equal m 3))
+            (setq m 2)
+            (setq flag t)))
+        (when (string-match-p "^[[:blank:]]*// ?@ preserves .*" (thing-at-point 'line))
+          (setq m 3)
+          (setq flag t))
+        (forward-line))
+      (when flag m))))
+
+(defun gobra-add-spec-spaces (longest start end)
+  "Add the necessary spaces after requires, ensures, preserves in region START - END given LONGEST."
+  (save-excursion
+    (goto-char start)
+    (while (and (<= (point) end) (not (eobp)))
+      (let ((s (thing-at-point 'line)))
+        (when (string-match "^[[:blank:]]*// ?@ ensures\\([[:blank:]]+\\)\\([^[:blank:]]+.*\\)" s)
+          (beginning-of-line)
+          (forward-char (match-beginning 2))
+          (delete-char (- (length (match-string 1 s))))
+          (insert (substring "   " 0 longest)))
+        (when (string-match "^[[:blank:]]*// ?@ requires\\([[:blank:]]+\\)\\([^[:blank:]]+.*\\)" s)
+          (beginning-of-line)
+          (forward-char (match-beginning 2))
+          (delete-char (- (length (match-string 1 s))))
+          (insert (substring "   " 0 (1- longest))))
+        (when (string-match "^[[:blank:]]*// ?@ preserves\\([[:blank:]]+\\)\\([^[:blank:]]+.*\\)" s)
+          (beginning-of-line)
+          (forward-char (match-beginning 2))
+          (delete-char (- (length (match-string 1 s))))
+          (insert " ")))
+      (forward-line))))
+
+(defun gobra-format-spec ()
+  "Format the current function spec aligning the requires, preserves and ensures arguments."
+  (interactive)
+  (let* ((region (gobra-expand-ghost-region))
+         (start (car region))
+         (end (cdr region)))
+    (when region
+      (let ((longest (gobra-get-longest-spec-token start end)))
+        (when longest
+          (gobra-add-spec-spaces longest start end))))))
+
 ;; Keymaps
 
 (defvar-local gobra-args-set nil "Arguments set for gobra executable.")
@@ -413,10 +464,10 @@
                                       :exit
                                       t)
       "
-^Verification^           ^Arguments^           ^Folding^        
-^^^^^^^^---------------------------------------------------------
-_v_: verify              _a_: edit args        _h_: fold/unfold       
-_f_: verify function     _s_: print command    _j_: show all          
+^Verification^          ^Arguments^           ^Folding^           ^Formatting^
+^^^^^^^^--------------------------------------------------------------------------
+_v_: verify             _a_: edit args        _h_: fold/unfold    _p_: format spec     
+_f_: verify function    _s_: print command    _j_: show all          
 _c_: verify + viper
 "
       ("v" gobra-verify)
@@ -426,6 +477,7 @@ _c_: verify + viper
       ("j" gobra-show-all)
       ("f" gobra-verify-line)
       ("c" gobra-printvpr)
+      ("p" gobra-format-spec)
       ("q" nil "cancel" :color blue)))
 
 (define-minor-mode gobra-minor-mode
@@ -440,7 +492,8 @@ _c_: verify + viper
                (cons (kbd "C-c g s") 'gobra-print-run-command)
                (cons (kbd "C-c g f") 'gobra-verify-line)
                (cons (kbd "C-c g h") 'gobra-fold-unfold)
-               (cons (kbd "C-c g j") 'gobra-show-all))
+               (cons (kbd "C-c g j") 'gobra-show-all)
+               (cons (kbd "C-c g p") 'gobra-format-spec))
             (list (cons (kbd "C-c g") 'gobra-minor-mode-hydra/body)))
   (cursor-sensor-mode)
   (gobra-args-initialize)
@@ -559,7 +612,7 @@ _c_: verify + viper
 
 (defun gobra-get-gobra-files (dir)
   "Get all '.go' or '.gobra' files in DIR."
-  (let ((files (seq-filter (lambda (f) (and (string-match-p "\\(.+\\.go\\)\\|\\(.*\\.gobra\\)" f) (not (file-directory-p f)))) (directory-files dir t))))
+  (let ((files (seq-filter (lambda (f) (and (string-match-p "\\(.+\\.go$\\)\\|\\(.*\\.gobra$\\)" f) (not (file-directory-p f)))) (directory-files dir t))))
     (apply 'concatenate (cons 'string (map 'list (lambda (f) (concat f " ")) files)))))
 
 (defun gobra-transform-args (file-line)
