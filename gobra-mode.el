@@ -394,20 +394,25 @@
     (goto-char start)
     (while (and (<= (point) end) (not (eobp)))
       (let ((s (thing-at-point 'line)))
-        (when (string-match "^[[:blank:]]*// ?@ ensures\\([[:blank:]]+\\)\\([^[:blank:]]+.*\\)" s)
+        (when longest
+          (when (string-match "^[[:blank:]]*// ?@ ensures\\([[:blank:]]+\\)\\([^[:blank:]]+.*\\)" s)
+            (beginning-of-line)
+            (forward-char (match-beginning 2))
+            (delete-char (- (length (match-string 1 s))))
+            (insert (substring "   " 0 longest)))
+          (when (string-match "^[[:blank:]]*// ?@ requires\\([[:blank:]]+\\)\\([^[:blank:]]+.*\\)" s)
+            (beginning-of-line)
+            (forward-char (match-beginning 2))
+            (delete-char (- (length (match-string 1 s))))
+            (insert (substring "   " 0 (1- longest))))
+          (when (string-match "^[[:blank:]]*// ?@ preserves\\([[:blank:]]+\\)\\([^[:blank:]]+.*\\)" s)
+            (beginning-of-line)
+            (forward-char (match-beginning 2))
+            (delete-char (- (length (match-string 1 s))))
+            (insert " ")))
+        (when (string-match "^[[:blank:]]*//\\(@\\).*" s)
           (beginning-of-line)
-          (forward-char (match-beginning 2))
-          (delete-char (- (length (match-string 1 s))))
-          (insert (substring "   " 0 longest)))
-        (when (string-match "^[[:blank:]]*// ?@ requires\\([[:blank:]]+\\)\\([^[:blank:]]+.*\\)" s)
-          (beginning-of-line)
-          (forward-char (match-beginning 2))
-          (delete-char (- (length (match-string 1 s))))
-          (insert (substring "   " 0 (1- longest))))
-        (when (string-match "^[[:blank:]]*// ?@ preserves\\([[:blank:]]+\\)\\([^[:blank:]]+.*\\)" s)
-          (beginning-of-line)
-          (forward-char (match-beginning 2))
-          (delete-char (- (length (match-string 1 s))))
+          (forward-char (match-beginning 1))
           (insert " ")))
       (forward-line))))
 
@@ -419,8 +424,27 @@
          (end (cdr region)))
     (when region
       (let ((longest (gobra-get-longest-spec-token start end)))
-        (when longest
-          (gobra-add-spec-spaces longest start end))))))
+        (gobra-add-spec-spaces longest start end)))))
+
+(defun gobra-find-ghost (forward)
+  "If FORWARD is nil search for the next chunk of ghost code backwards, else forward."
+  (let ((inc (if forward 1 -1))
+        (check (if forward 'eobp 'bobp)))
+    (push-mark)
+    (while (and (gobra-is-annotation-line) (not (funcall check)))
+      (forward-line inc))
+    (while (and (not (gobra-is-annotation-line)) (not (funcall check)))
+      (forward-line inc))))
+
+(defun gobra-next-ghost ()
+  "Find next chunk of ghost code."
+  (interactive)
+  (gobra-find-ghost t))
+
+(defun gobra-prev-ghost ()
+  "Find previous chunk of ghost code."
+  (interactive)
+  (gobra-find-ghost nil))
 
 ;; Keymaps
 
@@ -464,20 +488,22 @@
                                       :exit
                                       t)
       "
-^Verification^          ^Arguments^           ^Folding^           ^Formatting^
-^^^^^^^^--------------------------------------------------------------------------
-_v_: verify             _a_: edit args        _h_: fold/unfold    _p_: format spec     
-_f_: verify function    _s_: print command    _j_: show all          
-_c_: verify + viper
+^Verification^         ^Arguments^          ^Folding^          ^Ghost^
+^^^^^^^^-----------------------------------------------------------------------
+_v_: verify            _a_: edit args       _h_: fold/unfold   _f_: format spec
+_l_: verify line       _s_: print command   _j_: show all      _n_: next ghost
+_c_: verify + viper                                        _p_: prev ghost
 "
       ("v" gobra-verify)
       ("a" gobra-edit-args)
       ("s" gobra-print-run-command)
       ("h" gobra-fold-unfold)
       ("j" gobra-show-all)
-      ("f" gobra-verify-line)
+      ("l" gobra-verify-line)
       ("c" gobra-printvpr)
-      ("p" gobra-format-spec)
+      ("f" gobra-format-spec :color red)
+      ("n" gobra-next-ghost :color red)
+      ("p" gobra-prev-ghost :color red)
       ("q" nil "cancel" :color blue)))
 
 (define-minor-mode gobra-minor-mode
@@ -490,10 +516,12 @@ _c_: verify + viper
                (cons (kbd "C-c g c") 'gobra-printvpr)
                (cons (kbd "C-c g a") 'gobra-edit-args)
                (cons (kbd "C-c g s") 'gobra-print-run-command)
-               (cons (kbd "C-c g f") 'gobra-verify-line)
+               (cons (kbd "C-c g l") 'gobra-verify-line)
                (cons (kbd "C-c g h") 'gobra-fold-unfold)
                (cons (kbd "C-c g j") 'gobra-show-all)
-               (cons (kbd "C-c g p") 'gobra-format-spec))
+               (cons (kbd "C-c g f") 'gobra-format-spec)
+               (cons (kbd "C-c g n") 'gobra-next-ghost)
+               (cons (kbd "C-c g p") 'gobra-prev-ghost))
             (list (cons (kbd "C-c g") 'gobra-minor-mode-hydra/body)))
   (cursor-sensor-mode)
   (gobra-args-initialize)
