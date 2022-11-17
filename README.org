@@ -6,7 +6,7 @@ Adds support to Emacs for [[https://www.pm.inf.ethz.ch/research/gobra.html][Gobr
 - Error highlighting after running Gobra.
 - Jump to error functionality.
 - Interface for manipulating Gobra arguments.
-- Folding and unfolding ghost code blocks in ~.go~ files.
+- Various manipulations of ghost code blocks in ~.go~ files.
 
 * Installation
 
@@ -33,9 +33,14 @@ Default keybindings provided by the gobra minor mode:
 - ~C-c g c~: Opens the generated Viper code in a new buffer.
 - ~C-c g a~: Spawns a construction buffer through which the arguments passed to gobra are manipulated.
 - ~C-c g s~: Gobra mode creates the command that Gobra should run serializing the arguments and copying it to the kill-ring. Useful if working with the sbt shell of Gobra directly.
-- ~C-c g f~: Verify the function under the cursor only. This assumes the arguments explicitly have the current file for verification (not its directory or package).
+- ~C-c g l~: Verify the function under the cursor only. This assumes the arguments explicitly have the current file for verification (not its directory or package).
 - ~C-c g h~: Fold or unfold ghost code chunk under cursor (works for ~.go~ files where the comment syntax (~// @~) is used.
 - ~C-c g j~: Unfold every folded piece of ghost code in the current buffer.
+- ~C-c g f~: Format the ghost code chunk under cursor. This currently converts ~//@~ annotations to ~// @~ annotations and aligns the arguments of the keywords ~preserves~, ~requires~ and ~ensures~ in function contracts.
+- ~C-c g p~: Jump to previous ghost code chunk.
+- ~C-c g n~: Jump to next ghost code chunk.
+
+If [[https://github.com/abo-abo/hydra][Hydra]] is installed, pressing ~C-c g~ will spawn a hydra menu with all these commands available.
 
 The construction buffer for the arguments can be used to set, unset or modify the existing arguments of Gobra. It contains a checklist of possible Gobra arguments for which the following operations are defined:
 
