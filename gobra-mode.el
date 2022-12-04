@@ -1089,6 +1089,7 @@ _c_: verify + viper                                        _p_  : prev ghost
         ("^\\(real\\|user\\|sys\\).*s" 0 ''gobra-output-time-face)
         ("^\\(Gobra command:\\) .*s" 1 ''gobra-output-time-face)))
 
+;;;###autoload
 (define-derived-mode gobra-output-mode shell-mode
   "gobra-output mode"
   "Major mode for interacting with gobra output"
