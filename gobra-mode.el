@@ -579,6 +579,8 @@ _c_: verify + viper                                        _p_  : prev ghost
     ("int32" . "Run with 32-bit sized integers (the default is 64-bit ints)")
     ("logLevel" . "Needs <arg>. Specifies the log level. The default is OFF. Choices: ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF")
     ("module" . "Needs <arg>. Name of current module that should be used for resolving imports")
+    ("noStreamErrors" . "Do not stream errors produced by Gobra but instead print them all organized by package in the end.")
+    ("noVerify" . "Skip the verification step performed after encoding the Gobra program into Viper.")
     ("onlyFilesWithHeader" . "When enabled, Gobra only looks at files that contain the header comment '// +gobra'")
     ("overflow" . "Find expressions that may lead to integer overflow")
     ("packageTimeout" . "Needs <arg>. Duration till the verification of a package times out")
