@@ -88,18 +88,12 @@
     (when b
       (car (car b)))))
 
-(defun gobra-extract-num-errors (s)
-  "Find number of errors reported by gobra in S."
-  (string-match ".* - Gobra has found \\([0123456789]*\\) error(s).*" s)
-  (let ((num (match-string 1 s)))
-    (if num
-        (string-to-number num)
-      0)))
-
 (defun gobra-parse-error (l)
   "Parse error in line L."
   (let ((success (string-match ".*<\\(.*\\):\\([0123456789]*\\):\\([0123456789]*\\)>\\(.*\\)" l)))
+    (message "line is: %s" l)
     (when success
+      (message "inside")
       (let ((file (match-string 1 l))
             (l (string-to-number (match-string 2 l)))
             (c (string-to-number (match-string 3 l)))
@@ -148,13 +142,17 @@
                      (message "%s" (substring-no-properties err)))))))))
        data))
 
-(defun gobra-find-useful (data)
+(defun gobra-extract-num-errors (data)
   "Find the useful part of gobra output in DATA."
-  (let (res)
+  (let ((res 0))
     (while data
-      (when (string-match ".* - Gobra has found \\([0123456789]*\\) error(s).*" (car data))
-        (setq res data)
-        (setq data nil))
+      (let ((s (car data)))
+        (when (string-match ".* - Gobra has found \\([0123456789]*\\) error(s).*" s)
+          (let ((num (match-string 1 s)))
+            (setq res (+ res
+                         (if num
+                             (string-to-number num)
+                           0))))))
       (setq data (cdr data)))
     res))
 
@@ -163,10 +161,9 @@
   (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
     (read-only-mode 1)
     (let ((out (buffer-string)))
-      (let* ((splitted (split-string out "\n"))
-             (useful (gobra-find-useful splitted)))
+      (let ((useful (split-string out "\n")))
         (when useful
-          (let ((numerrors (gobra-extract-num-errors (car useful))))
+          (let ((numerrors (gobra-extract-num-errors useful)))
             (map 'list
                  (lambda (buf)
                    (with-current-buffer buf
@@ -186,10 +183,9 @@
   (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
     (read-only-mode 1)
     (let ((out (buffer-string)))
-      (let* ((splitted (split-string out "\n"))
-             (useful (gobra-find-useful splitted)))
+      (let ((useful (split-string out "\n")))
         (when useful
-          (let (numerrors (gobra-extract-num-errors (car useful)))
+          (let (numerrors (gobra-extract-num-errors useful))
             (map 'list
                  (lambda (buf)
                    (with-current-buffer buf
@@ -493,6 +489,7 @@
                          "ghost"
                          "implements"
                          "unfolding"
+                         "let"
                          "fold"
                          "unfold"
                          "decreases")
