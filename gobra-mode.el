@@ -91,9 +91,7 @@
 (defun gobra-parse-error (l)
   "Parse error in line L."
   (let ((success (string-match ".*<\\(.*\\):\\([0123456789]*\\):\\([0123456789]*\\)>\\(.*\\)" l)))
-    (message "line is: %s" l)
     (when success
-      (message "inside")
       (let ((file (match-string 1 l))
             (l (string-to-number (match-string 2 l)))
             (c (string-to-number (match-string 3 l)))
