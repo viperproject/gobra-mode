@@ -517,7 +517,8 @@ _c_: verify + viper                                        _p_  : prev ghost
       ("n" gobra-next-ghost :color red)
       ("p" gobra-prev-ghost :color red)
       ("C-f" gobra-format-all-spec)
-      ("q" nil "cancel" :color blue)))
+      ("q" nil "cancel" :color blue))
+  (setq gobra-minor-mode-hydra nil))
 
 (define-minor-mode gobra-minor-mode
   "Minor mode for gobra (used primarily in go files)."
