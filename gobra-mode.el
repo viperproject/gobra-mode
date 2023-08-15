@@ -1086,7 +1086,7 @@ _c_: verify + viper                                        _p_  : prev ghost
 
 ;;;###autoload
 
-(add-to-list 'auto-mode-alist '("\\.gobra" . gobra-mode))
+(add-to-list 'auto-mode-alist '("\\.gobra$" . gobra-mode))
 
 (provide 'gobra-mode)
 ;;; gobra-mode.el ends here
