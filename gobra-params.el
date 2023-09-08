@@ -62,14 +62,11 @@
                    (interactive "nNumber of parts: ")
                    arg))))
     ,(make-param-config-param
+      :name "conditionalizePermissions"
+      :doc "Experimental: if enabled, and if the chosen backend is either SILICON or SWITHSILICON, silicon will try to reduce the number of symbolic execution paths by conditionalising permission expressions. E.g. \"b ==> acc(x.f, p)\" is rewritten to \"acc(x.f, b ? p : none)\".")
+    ,(make-param-config-param
       :name "debug"
       :doc "Output additional debug information")
-    ,(make-param-config-param
-      :name "disableMoreCompleteExhale"
-      :doc "Disables the flag --enableMoreCompleteExhale passed by default to Silicon")
-    ,(make-param-config-param
-      :name "enableLazyImport"
-      :doc "Enforces that Gobra parses depending packages only when necessary. Note that this disables certain language features such as global variables.")
     ,(make-param-config-param
       :name "directory"
       :doc "Needs <arg...>. List of directories to verify"
@@ -77,6 +74,9 @@
       :getter (lambda ()
                 (read-directory-name "Directory: "))
       :repeating t)
+    ,(make-param-config-param
+      :name "enableLazyImport"
+      :doc "Enforces that Gobra parses depending packages only when necessary. Note that this disables certain language features such as global variables.")
     ,(make-param-config-param
       :name "eraseGhost"
       :doc "Print the input program without ghost code")
@@ -127,6 +127,13 @@
                 (completing-read "Log level: "
                                  '("ALL" "TRACE" "DEBUG" "INFO" "WARN" "ERROR" "OFF") nil t)))
     ,(make-param-config-param
+      :name "mceMode"
+      :doc "Specifies if silicon should be run with more complete exhale enabled (on), disabled (off), or enabled on demand (od). Choices: on, off, od"
+      :args t
+      :getter (lambda ()
+                (completing-read "More complete exhale mode: "
+                                 '("on" "off" "od") nil t)))
+    ,(make-param-config-param
       :name "module"
       :doc "Needs <arg>. Name of current module that should be used for resolving imports"
       :args t
@@ -157,6 +164,12 @@
       :name "parallelizeBranches"
       :doc "Performs parallel branch verification if the chosen backend is either SILICON or VSWITHSILICON")
     ,(make-param-config-param
+      :name "parseAndTypeCheckMode"
+      :args t
+      :getter (lambda ()
+                (completing-read "Parse and type check mode: "
+                                 '("LAZY" "SEQUENTIAL" "PARALLEL") nil t)))
+    ,(make-param-config-param
       :name "parseOnly"
       :doc "Perform only the parsing step")
     ,(make-param-config-param
@@ -177,6 +190,9 @@
     ,(make-param-config-param
       :name "unparse"
       :doc "Print the parsed program")
+    ,(make-param-config-param
+      :name "z3APIMode"
+      :doc "When the backend is either SILICON or VSWITHSILICON, silicon will use Z3 via API.")
     ,(make-param-config-param
       :name "z3Exe"
       :doc "Needs <arg>. The Z3 executable"
