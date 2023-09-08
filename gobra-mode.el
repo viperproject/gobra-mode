@@ -563,22 +563,69 @@ _c_: verify + viper                                        _p_  : prev ghost
                     (concat f " ")))
                 files))))
 
+(defun gobra-has-header (f)
+  (with-temp-buffer
+    (insert-file-contents f)
+    (buffer-string)
+    (goto-char (point-min))
+    (let ((found nil)
+          (esc nil))
+      (while (and (not (eobp)) (not found) (not esc))
+        (let ((line (thing-at-point 'line)))
+          (when (string-match-p "^package .*" line)
+            (setq esc t))
+          (when (string-match-p "^// \\+gobra" line)
+            (setq found t))
+          (forward-line)))
+      found)))
+
+(defun gobra-transform-params (file-line)
+  (if (and file-line
+           (assoc "directory" gobra-mode-config))
+      (let* ((directories (cdr (assoc "directory" gobra-mode-config)))
+             (params (assoc-delete-all "directory" gobra-mode-config))
+             (files (apply 'append
+                           (cl-map
+                            'list
+                            (lambda (directory)
+                              (seq-filter
+                               (lambda (fname)
+                                 (string-match-p ".*\\.gobra$" fname))
+                               (directory-files directory t)))
+                            directories))))
+        (if (assoc "onlyFilesWithHeader" gobra-mode-config)
+            (cons (cons "input"
+                        (seq-filter
+                         'gobra-has-header
+                         files))
+                  params)
+          (cons (cons "input" files) params)))
+    gobra-mode-config))
+
 (defun gobra-args-serialize (&optional file-line)
   "Return the arguments string.  If the optional argument FILE-LINE is specified as a tuple (filename line), the specific line will be appended to the corresponding file for specific member verification."
-  (let* ((params gobra-mode-config)
+  (let* ((params (gobra-transform-params file-line))
          (s ""))
     (while params
       (let ((cur (car params)))
-        (setq s (string-trim-right (format "%s --%s %s"
-                                           s
-                                           (car cur)
-                                           (or
-                                            (string-trim-left
-                                             (cl-reduce (lambda (sofar arg)
-                                                          (concat sofar " " arg))
-                                                        (cdr cur)
-                                                        :initial-value ""))
-                                            ""))))
+        (setq s (string-trim-right
+                 (format "%s --%s %s"
+                         s
+                         (car cur)
+                         (or
+                          (string-trim-left
+                           (cl-reduce
+                            (lambda (sofar arg)
+                              (concat sofar
+                                      " "
+                                      (if (and (equal (car cur) "input")
+                                               file-line
+                                               (equal (car file-line) arg))
+                                          (format "%s@%s" arg (cdr file-line))
+                                        arg)))
+                            (cdr cur)
+                            :initial-value ""))
+                          ""))))
         (setq params (cdr params))))
     s))
 
