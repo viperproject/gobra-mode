@@ -5,7 +5,7 @@ Adds support to Emacs for [[https://www.pm.inf.ethz.ch/research/gobra.html][Gobr
 - Interface to the Gobra executable.
 - Error highlighting after running Gobra.
 - Jump to error functionality.
-- Interface for manipulating Gobra arguments.
+- Interface for manipulating Gobra parameters.
 - Various manipulations of ghost code blocks in ~.go~ files.
 
 * Installation
@@ -31,9 +31,9 @@ Then, add the following lines in your init file.
 Default keybindings provided by the gobra minor mode:
 - ~C-c g v~: Verifies the file corresponding to the current buffer.
 - ~C-c g c~: Opens the generated Viper code in a new buffer.
-- ~C-c g a~: Spawns a construction buffer through which the arguments passed to gobra are manipulated.
-- ~C-c g s~: Gobra mode creates the command that Gobra should run serializing the arguments and copying it to the kill-ring. Useful if working with the sbt shell of Gobra directly.
-- ~C-c g l~: Verify the function under the cursor only. This assumes the arguments explicitly have the current file for verification (not its directory or package).
+- ~C-c g a~: Spawns a construction buffer through which the parameters passed to gobra are manipulated.
+- ~C-c g s~: Gobra mode creates the command that Gobra should run serializing the parameters and copying it to the kill-ring. Useful if working with the sbt shell of Gobra directly.
+- ~C-c g l~: Verify the function under the cursor only. This assumes the parameters explicitly have the current file for verification (not its directory or package).
 - ~C-c g h~: Fold or unfold ghost code chunk under cursor (works for ~.go~ files where the comment syntax (~// @~) is used.
 - ~C-c g j~: Unfold every folded piece of ghost code in the current buffer.
 - ~C-c g f~: Format the ghost code chunk under cursor. This currently converts ~//@~ annotations to ~// @~ annotations and aligns the arguments of the keywords ~preserves~, ~requires~ and ~ensures~ in function contracts.
@@ -43,15 +43,16 @@ Default keybindings provided by the gobra minor mode:
 
 If [[https://github.com/abo-abo/hydra][Hydra]] is installed, pressing ~C-c g~ will spawn a hydra menu with all these commands available.
 
-The construction buffer for the arguments can be used to set, unset or modify the existing arguments of Gobra. It contains a checklist of possible Gobra arguments for which the following operations are defined:
+The construction buffer for the parameters can be used to set, unset or modify the existing parameters of Gobra. It contains a checklist of possible Gobra parameters for which the following operations are defined:
 
-- ~c~: Set or unset the current argument. If the argument has itself arguments, the user is prompted to fill them.
-- ~a~: Add arguments to an already set argument.
-- ~e~: Spawn a buffer to edit the arguments of this argument by hand.
-- ~d~: Print documentation about the current argument.
-- ~s~: Save the current set of arguments (and their arguments) to a file.
+- ~c~: Set or unset the current parameter. If the parameter has itself arguments, the user is prompted to fill them.
+- ~a~: Add arguments to an already set parameter.
+- ~d~: Delete the current argument of a parameter.
+- ~?~: Print documentation about the current parameter.
+- ~s~: Save the current set of parameters (and their arguments) to a file.
 - ~l~: Load a configuration from a file.
 - ~q~: Exit and return to the Gobra buffer.
+- ~j~: Jump to a specific parameter.
 - ~n~ - ~p~: Move up and down.
 
 When the verifier is running, it lives in an async command in a buffer by default called ~*Gobra Command Output*~. That buffer also supports some extra functionality, namely:
