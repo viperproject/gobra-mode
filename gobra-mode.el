@@ -583,7 +583,7 @@ _c_: verify + viper                                        _p_  : prev ghost
   (if (and file-line
            (assoc "directory" gobra-mode-config))
       (let* ((directories (cdr (assoc "directory" gobra-mode-config)))
-             (params (assoc-delete-all "directory" gobra-mode-config))
+             (params (seq-filter (lambda (c) (not (equal (car c) "directory"))) gobra-mode-config))
              (files (apply 'append
                            (cl-map
                             'list
