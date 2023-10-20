@@ -590,7 +590,9 @@ _c_: verify + viper                                        _p_  : prev ghost
                             (lambda (directory)
                               (seq-filter
                                (lambda (fname)
-                                 (string-match-p ".*\\.gobra$" fname))
+                                 (or
+                                  (string-match-p ".*\\.gobra$" fname)
+                                  (string-match-p ".*\\.go$" fname)))
                                (directory-files directory t)))
                             directories))))
         (if (assoc "onlyFilesWithHeader" gobra-mode-config)
