@@ -209,7 +209,7 @@
      ,(make-param-config-param
        :name "disableNL"
        :doc "Disable non-linear integer arithmetics"))
-   (lambda (p) (param-config-param-name p))))
+   (lambda (p q) (string< (param-config-param-name p) (param-config-param-name q)))))
 
 (provide 'gobra-params)
 ;;; gobra-params.el ends here
