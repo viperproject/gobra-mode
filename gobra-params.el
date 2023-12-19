@@ -75,9 +75,9 @@
        :getter (lambda ()
                  (read-directory-name "Directory: "))
        :repeating t)
-	 ,(make-param-config-param
-	   :name "disableSetAxiomatization"
-	   :doc "Disables set axiomatization in Silicon.")
+	   ,(make-param-config-param
+	     :name "disableSetAxiomatization"
+	     :doc "Disables set axiomatization in Silicon.")
      ,(make-param-config-param
        :name "enableLazyImport"
        :doc "Enforces that Gobra parses depending packages only when necessary. Note that this disables certain language features such as global variables.")
