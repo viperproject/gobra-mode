@@ -67,13 +67,13 @@
 
 (defun gobra-all-buffers ()
   "Find all .go and .gobra buffers."
-  (map 'list
+  (cl-map 'list
        'car
        (seq-filter
         (lambda (x)
           (when (cdr x)
             (or (string-match ".*\\.gobra$" (cdr x)) (string-match ".*\\.go$" (cdr x)))))
-        (map 'list
+        (cl-map 'list
              (lambda (x)
                (cons x (buffer-file-name x)))
              (buffer-list)))))
@@ -84,7 +84,7 @@
             (lambda (x)
               (when (cdr x)
                 (equal (cdr x) file)))
-            (map 'list
+            (cl-map 'list
                  (lambda (x)
                    (cons x (buffer-file-name x)))
                  (buffer-list)))))
@@ -117,7 +117,7 @@
 
 (defun gobra-parse-errors (data)
   "Parse gobra output errors in DATA."
-  (map 'list
+  (cl-map 'list
        (lambda (l)
          (let* ((info (gobra-parse-error l))
                 (start (car info))
@@ -165,7 +165,7 @@
       (let ((useful (split-string out "\n")))
         (when useful
           (let ((numerrors (gobra-extract-num-errors useful)))
-            (map 'list
+            (cl-map 'list
                  (lambda (buf)
                    (with-current-buffer buf
                      (seq-do #'delete-overlay gobra-highlight-overlays)))
@@ -187,7 +187,7 @@
       (let ((useful (split-string out "\n")))
         (when useful
           (let (numerrors (gobra-extract-num-errors useful))
-            (map 'list
+            (cl-map 'list
                  (lambda (buf)
                    (with-current-buffer buf
                      (seq-do #'delete-overlay gobra-highlight-overlays)))
@@ -522,7 +522,7 @@ _c_: verify + viper                                        _p_  : prev ghost
 
 (define-minor-mode gobra-minor-mode
   "Minor mode for gobra (used primarily in go files)."
-  nil
+  :init-value nil
   :lighter " Gobra"
   :keymap (list (cons (kbd "C-c g") 'gobra-minor-mode-hydra/body))
   (cursor-sensor-mode)
@@ -548,7 +548,7 @@ _c_: verify + viper                                        _p_  : prev ghost
 (defun gobra-get-gobra-files (dir)
   "Get all '.go' or '.gobra' files in DIR."
   (let ((files (seq-filter (lambda (f) (and (string-match-p "\\(.+\\.go$\\)\\|\\(.*\\.gobra$\\)" f) (not (file-directory-p f)))) (directory-files dir t))))
-    (apply 'concatenate (cons 'string (map 'list (lambda (f) (concat f " ")) files)))))
+    (apply 'concatenate (cons 'string (cl-map 'list (lambda (f) (concat f " ")) files)))))
 
 (defun gobra-insert-file-line (file-line args-of-args)
   "FILE-LINE is a file with a corresponding line which we want to verify.  Insert that line to the corresponding file in ARGS-OF-ARGS."
@@ -556,7 +556,7 @@ _c_: verify + viper                                        _p_  : prev ghost
         (line (cdr file-line))
         (files (split-string args-of-args " ")))
     (apply 'concat
-           (map 'list
+           (cl-map 'list
                 (lambda (f)
                   (if (equal file f)
                       (format "%s@%s " file line)
