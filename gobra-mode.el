@@ -475,6 +475,8 @@
                          "ensures"
                          "preserves"
                          "trusted"
+			 "opaque"
+			 "reveal"
                          "pred"
                          "pure"
                          "forall"
