@@ -68,15 +68,15 @@
 (defun gobra-all-buffers ()
   "Find all .go and .gobra buffers."
   (cl-map 'list
-       'car
-       (seq-filter
-        (lambda (x)
-          (when (cdr x)
-            (or (string-match ".*\\.gobra$" (cdr x)) (string-match ".*\\.go$" (cdr x)))))
-        (cl-map 'list
-             (lambda (x)
-               (cons x (buffer-file-name x)))
-             (buffer-list)))))
+          'car
+          (seq-filter
+           (lambda (x)
+             (when (cdr x)
+               (or (string-match ".*\\.gobra$" (cdr x)) (string-match ".*\\.go$" (cdr x)))))
+           (cl-map 'list
+                   (lambda (x)
+                     (cons x (buffer-file-name x)))
+                   (buffer-list)))))
 
 (defun gobra-find-gobra-buffer (file)
   "Find the buffer corresponding to FILE."
@@ -85,9 +85,9 @@
               (when (cdr x)
                 (equal (cdr x) file)))
             (cl-map 'list
-                 (lambda (x)
-                   (cons x (buffer-file-name x)))
-                 (buffer-list)))))
+                    (lambda (x)
+                      (cons x (buffer-file-name x)))
+                    (buffer-list)))))
     (when b
       (car (car b)))))
 
@@ -118,30 +118,30 @@
 (defun gobra-parse-errors (data)
   "Parse gobra output errors in DATA."
   (cl-map 'list
-       (lambda (l)
-         (let* ((info (gobra-parse-error l))
-                (start (car info))
-                (end (nth 1 info))
-                (file (nth 2 info))
-                (err (nth 3 info)))
-           (when info
-             (let ((buf (gobra-find-gobra-buffer file)))
-               (when buf
-                 (with-current-buffer buf
-                   (let ((ov (make-overlay
-                              start
-                              end)))
-                     (push ov gobra-highlight-overlays)
-                     (overlay-put ov 'face 'gobra-error)
-                     (overlay-put ov 'help-echo (substring-no-properties err))
-                     (overlay-put ov
-                                  'cursor-sensor-functions
-                                  (list
-                                   (lambda (window pos action)
-                                     (when (eq action 'entered)
-                                       (message "%s" (substring-no-properties err))))))
-                     (message "%s" (substring-no-properties err)))))))))
-       data))
+          (lambda (l)
+            (let* ((info (gobra-parse-error l))
+                   (start (car info))
+                   (end (nth 1 info))
+                   (file (nth 2 info))
+                   (err (nth 3 info)))
+              (when info
+                (let ((buf (gobra-find-gobra-buffer file)))
+                  (when buf
+                    (with-current-buffer buf
+                      (let ((ov (make-overlay
+                                 start
+                                 end)))
+                        (push ov gobra-highlight-overlays)
+                        (overlay-put ov 'face 'gobra-error)
+                        (overlay-put ov 'help-echo (substring-no-properties err))
+                        (overlay-put ov
+                                     'cursor-sensor-functions
+                                     (list
+                                      (lambda (window pos action)
+                                        (when (eq action 'entered)
+                                          (message "%s" (substring-no-properties err))))))
+                        (message "%s" (substring-no-properties err)))))))))
+          data))
 
 (defun gobra-extract-num-errors (data)
   "Find the useful part of gobra output in DATA."
@@ -166,10 +166,10 @@
         (when useful
           (let ((numerrors (gobra-extract-num-errors useful)))
             (cl-map 'list
-                 (lambda (buf)
-                   (with-current-buffer buf
-                     (seq-do #'delete-overlay gobra-highlight-overlays)))
-                 (gobra-all-buffers))
+                    (lambda (buf)
+                      (with-current-buffer buf
+                        (seq-do #'delete-overlay gobra-highlight-overlays)))
+                    (gobra-all-buffers))
             (if (equal numerrors 0)
                 (progn
                   (message "Program verified succesfully!")
@@ -188,10 +188,10 @@
         (when useful
           (let (numerrors (gobra-extract-num-errors useful))
             (cl-map 'list
-                 (lambda (buf)
-                   (with-current-buffer buf
-                     (seq-do #'delete-overlay gobra-highlight-overlays)))
-                 (gobra-all-buffers))
+                    (lambda (buf)
+                      (with-current-buffer buf
+                        (seq-do #'delete-overlay gobra-highlight-overlays)))
+                    (gobra-all-buffers))
             (if (equal numerrors 0)
                 (progn
                   (message "Program verified succesfully!")
@@ -300,26 +300,26 @@
 (defun gobra-expand-ghost-region ()
   "Select a chunk of ghost code that has the cursor inside."
   (if (gobra-is-annotation-line)
-    (save-excursion
-      (let ((orig (point))
-            (forward (progn (end-of-line) (point)))
-            (backward (progn (beginning-of-line) (point))))
-        (forward-line)
-        (while (and (gobra-is-annotation-line) (not (equal (point) (point-max))))
-          (setq forward (progn (end-of-line) (point)))
-          (forward-line))
-        (when (gobra-is-annotation-line)
-          (setq forward (progn (end-of-line) (point))))
-        (goto-char orig)
-        (forward-line -1)
-        (while (and (gobra-is-annotation-line) (not (equal (point) (point-min))))
-          (setq backward (progn (beginning-of-line) (point)))
-          (forward-line -1))
-        (when (gobra-is-annotation-line)
-          (setq backward (progn (beginning-of-line) (point))))
-        (if (and forward backward)
-            (cons backward forward)
-          nil)))
+      (save-excursion
+        (let ((orig (point))
+              (forward (progn (end-of-line) (point)))
+              (backward (progn (beginning-of-line) (point))))
+          (forward-line)
+          (while (and (gobra-is-annotation-line) (not (equal (point) (point-max))))
+            (setq forward (progn (end-of-line) (point)))
+            (forward-line))
+          (when (gobra-is-annotation-line)
+            (setq forward (progn (end-of-line) (point))))
+          (goto-char orig)
+          (forward-line -1)
+          (while (and (gobra-is-annotation-line) (not (equal (point) (point-min))))
+            (setq backward (progn (beginning-of-line) (point)))
+            (forward-line -1))
+          (when (gobra-is-annotation-line)
+            (setq backward (progn (beginning-of-line) (point))))
+          (if (and forward backward)
+              (cons backward forward)
+            nil)))
     nil))
 
 (defun gobra-hide ()
@@ -354,12 +354,12 @@
 (defun gobra-show-helper (l change newl)
   "Helper for gobra-show.  L is the list of overlays.  CHANGE is t when a change has occured.  NEWL is the aggregation list for tail recursion."
   (if l
-    (let ((start (overlay-start (car l)))
-          (end (overlay-end (car l))))
-      (if (or (> 2 (abs (- (point) start))) (> 2 (abs (- (point) end))))
-          (progn (delete-overlay (car l))
-                 (gobra-show-helper (cdr l) t newl))
-        (gobra-show-helper (cdr l) change (cons (car l) newl))))
+      (let ((start (overlay-start (car l)))
+            (end (overlay-end (car l))))
+        (if (or (> 2 (abs (- (point) start))) (> 2 (abs (- (point) end))))
+            (progn (delete-overlay (car l))
+                   (gobra-show-helper (cdr l) t newl))
+          (gobra-show-helper (cdr l) change (cons (car l) newl))))
     (cons newl change)))
 
 (defun gobra-fold-unfold ()
@@ -475,8 +475,8 @@
                          "ensures"
                          "preserves"
                          "trusted"
-			 "opaque"
-			 "reveal"
+			                   "opaque"
+			                   "reveal"
                          "pred"
                          "pure"
                          "forall"
@@ -559,11 +559,11 @@ _c_: verify + viper                                        _p_  : prev ghost
         (files (split-string args-of-args " ")))
     (apply 'concat
            (cl-map 'list
-                (lambda (f)
-                  (if (equal file f)
-                      (format "%s@%s " file line)
-                    (concat f " ")))
-                files))))
+                   (lambda (f)
+                     (if (equal file f)
+                         (format "%s@%s " file line)
+                       (concat f " ")))
+                   files))))
 
 (defun gobra-has-header (f)
   (with-temp-buffer
@@ -672,15 +672,15 @@ _c_: verify + viper                                        _p_  : prev ghost
   (let ((line (thing-at-point 'line)))
     (let ((success (string-match ".*<\\(.*\\):\\([0123456789]*\\):[0123456789]*>.*" line)))
       (if success
-        (let ((file (match-string 1 line))
-              (l (string-to-number (match-string 2 line))))
-          (when (and file l)
-            (let ((buf (gobra-find-gobra-buffer file)))
-              (when (not buf)
-                (setq buf (find-file-other-window file)))
-              (pop-to-buffer buf)
-              (goto-char (point-min))
-              (forward-line (1- l)))))
+          (let ((file (match-string 1 line))
+                (l (string-to-number (match-string 2 line))))
+            (when (and file l)
+              (let ((buf (gobra-find-gobra-buffer file)))
+                (when (not buf)
+                  (setq buf (find-file-other-window file)))
+                (pop-to-buffer buf)
+                (goto-char (point-min))
+                (forward-line (1- l)))))
         (when gobra-development-path
           (let ((success (string-match ".*\\(viper\\.gobra\\..*[ABCDEFGHIJKLMNOPQRSTUVWXYZ].*\\)\\..*(.*:\\([0123456789]*\\))" line)))
             (when success
