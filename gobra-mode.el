@@ -477,6 +477,7 @@
                          "trusted"
 			                   "opaque"
 			                   "reveal"
+                         "outline"
                          "pred"
                          "pure"
                          "forall"
