@@ -31,6 +31,8 @@
 (defvar gobra-z3-path nil "Holds the path to Z3 binary.")
 (defvar gobra-jar-path nil "Holds the path to gobra jar file.")
 (defvar gobra-actions-before-go-mode (lambda () nil) "Function ran before the go mode hooks kick in.")
+(defvar gobra-verification-hook nil "Things to do when verification finishes.")
+(defvar gobra-enable-verification-hook nil "If non-nil, run verification hook when verification finishes.")
 (defvar-local gobra-ghost-overlays nil "Holds the overlays for ghost code folding.")
 
 ;; faces
@@ -159,6 +161,8 @@
 
 (defun gobra-read-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish verification with SIGNAL."
+  (when (and gobra-enable-verification-hook (or (equal (string-trim signal) "exited abnormally with code 1") (equal (string-trim signal) "finished")))
+      (cl-map 'list #'funcall gobra-verification-hook))
   (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
     (read-only-mode 1)
     (let ((out (buffer-string)))
@@ -181,6 +185,8 @@
 
 (defun gobra-printvpr-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish the production of vpr code with SIGNAL."
+  (when (and gobra-enable-verification-hook (or (equal (string-trim signal) "exited abnormally with code 1") (equal (string-trim signal) "finished")))
+      (cl-map 'list #'funcall gobra-verification-hook))
   (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
     (read-only-mode 1)
     (let ((out (buffer-string)))
@@ -283,12 +289,12 @@
   "Return the mode line string."
   (if gobra-minor-mode
       (if (not gobra-is-verified)
-          (concat "[" (propertize "Unknown" 'face 'gobra-notran-face) "]")
+          (concat "[" (propertize "Unknown" 'face 'gobra-notran-face) (if gobra-enable-verification-hook " 🔔" "") "]")
         (if (equal gobra-is-verified 1)
-            (concat "[" (propertize "Verified" 'face 'gobra-verified-face) "]")
+            (concat "[" (propertize "Verified" 'face 'gobra-verified-face) (if gobra-enable-verification-hook " 🔔" "") "]")
           (if (equal gobra-is-verified 2)
-              (concat "[" (propertize "Unverified" 'face 'gobra-unverified-face) "]")
-            (concat "[" (propertize "Verifying..." 'face 'gobra-notran-face) "]"))))
+              (concat "[" (propertize "Unverified" 'face 'gobra-unverified-face) (if gobra-enable-verification-hook " 🔔" "") "]")
+            (concat "[" (propertize "Verifying..." 'face 'gobra-notran-face) (if gobra-enable-verification-hook " 🔔" "") "]"))))
     ""))
 
 ;; Gobra ghost code folding and unfolding (comments only)
@@ -506,12 +512,13 @@
 ^^^^^^^^-----------------------------------------------------------------------------
 _v_: verify            _a_: edit args       _h_: fold/unfold   _f_  : format spec
 _l_: verify line       _s_: print command   _j_: show all      _n_  : next ghost
-_c_: verify + viper                                        _p_  : prev ghost
+_c_: verify + viper    _b_: toggle notifications           _p_  : prev ghost
                                                          _C-f_: format all spec
 "
   ("v" gobra-verify)
   ("a" gobra-edit-args)
   ("s" gobra-print-run-command)
+  ("b" gobra-toggle-bell)
   ("h" gobra-fold-unfold :color red)
   ("j" gobra-show-all)
   ("l" gobra-verify-line)
@@ -638,6 +645,11 @@ _c_: verify + viper                                        _p_  : prev ghost
   "Spawn the construction buffer for the arguments."
   (interactive)
   (param-config-edit-params gobra-params 'gobra-mode-config))
+
+(defun gobra-toggle-bell ()
+  "Toggles the verification hook use."
+  (interactive)
+  (setq gobra-enable-verification-hook (not gobra-enable-verification-hook)))
 
 ;; major mode for gobra output buffer
 

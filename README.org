@@ -33,6 +33,7 @@ Default keybindings provided by the gobra minor mode:
 - ~C-c g c~: Opens the generated Viper code in a new buffer.
 - ~C-c g a~: Spawns a construction buffer through which the parameters passed to gobra are manipulated.
 - ~C-c g s~: Gobra mode creates the command that Gobra should run serializing the parameters and copying it to the kill-ring. Useful if working with the sbt shell of Gobra directly.
+- ~C-c g b~: Gobra mode defines a hook called ~gobra-verification-hook~. Anything added to that will be called when verification finishes if the variable ~gobra-enable-verification-hook~ is non-nil. Useful if you want to be notified after a large verification task finishes. This command toggles the variable ~gobra-enable-verification-hook~.
 - ~C-c g l~: Verify the function under the cursor only. This assumes the parameters explicitly have the current file for verification (not its directory or package).
 - ~C-c g h~: Fold or unfold ghost code chunk under cursor (works for ~.go~ files where the comment syntax (~// @~) is used.
 - ~C-c g j~: Unfold every folded piece of ghost code in the current buffer.
