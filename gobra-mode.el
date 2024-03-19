@@ -33,6 +33,7 @@
 (defvar gobra-actions-before-go-mode (lambda () nil) "Function ran before the go mode hooks kick in.")
 (defvar gobra-verification-hook nil "Things to do when verification finishes.")
 (defvar gobra-enable-verification-hook nil "If non-nil, run verification hook when verification finishes.")
+(defvar gobra-prevent-verification-buffer-popup nil "If non-nil, the verification buffer won't be popped.")
 (defvar-local gobra-ghost-overlays nil "Holds the overlays for ghost code folding.")
 
 ;; faces
@@ -213,6 +214,12 @@
 (defun gobra-verify ()
   "Verify current buffer."
   (interactive)
+  (if gobra-prevent-verification-buffer-popup
+      (save-window-excursion
+        (gobra-verify-helper))
+    (gobra-verify-helper)))
+
+(defun gobra-verify-helper ()
   (setq-local gobra-buffer (current-buffer))
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
@@ -235,6 +242,13 @@
 (defun gobra-verify-line ()
   "Verify current buffer."
   (interactive)
+  (if gobra-prevent-verification-buffer-popup
+      (save-window-excursion
+        (gobra-verify-line-helper))
+    (gobra-verify-line-helper)))
+
+(defun gobra-verify-line-helper ()
+  "Verify current buffer."
   (setq-local gobra-buffer (current-buffer))
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
@@ -255,6 +269,14 @@
         (set-process-sentinel proc #'gobra-read-sentinel)))))
 
 (defun gobra-printvpr ()
+  "Open viper file for current buffer."
+  (interactive)
+  (if gobra-prevent-verification-buffer-popup
+      (save-window-excursion
+        (gobra-printvpr-helper))
+    (gobra-printvpr-helper)))
+
+(defun gobra-printvpr-helper ()
   "Open viper file for current buffer."
   (interactive)
   (setq-local gobra-buffer (current-buffer))
@@ -508,17 +530,16 @@
                                   :exit
                                   t)
   "
-^Verification^         ^Arguments^          ^Folding^          ^Ghost^
-^^^^^^^^-----------------------------------------------------------------------------
-_v_: verify            _a_: edit args       _h_: fold/unfold   _f_  : format spec
-_l_: verify line       _s_: print command   _j_: show all      _n_  : next ghost
-_c_: verify + viper    _b_: toggle notifications           _p_  : prev ghost
+^Verification^         ^Arguments^          ^Folding^          ^Ghost^               ^gobra-mode^
+^^^^^^^^-----------------------------------------------------------------------------------------
+_v_: verify            _a_: edit args       _h_: fold/unfold   _f_  : format spec    _b_: toggle notifications
+_l_: verify line       _s_: print command   _j_: show all      _n_  : next ghost     _k_: toggle buffer popup
+_c_: verify + viper                                        _p_  : prev ghost
                                                          _C-f_: format all spec
 "
   ("v" gobra-verify)
   ("a" gobra-edit-args)
   ("s" gobra-print-run-command)
-  ("b" gobra-toggle-bell)
   ("h" gobra-fold-unfold :color red)
   ("j" gobra-show-all)
   ("l" gobra-verify-line)
@@ -527,6 +548,8 @@ _c_: verify + viper    _b_: toggle notifications           _p_  : prev ghost
   ("n" gobra-next-ghost :color red)
   ("p" gobra-prev-ghost :color red)
   ("C-f" gobra-format-all-spec)
+  ("b" gobra-toggle-bell)
+  ("k" gobra-toggle-popup)
   ("q" nil "cancel" :color blue))
 
 
@@ -650,6 +673,11 @@ _c_: verify + viper    _b_: toggle notifications           _p_  : prev ghost
   "Toggles the verification hook use."
   (interactive)
   (setq gobra-enable-verification-hook (not gobra-enable-verification-hook)))
+
+(defun gobra-toggle-popup ()
+  "Toggles the popping up of the verification buffer"
+  (interactive)
+  (setq gobra-prevent-verification-buffer-popup (not gobra-prevent-verification-buffer-popup)))
 
 ;; major mode for gobra output buffer
 
