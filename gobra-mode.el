@@ -503,6 +503,7 @@
                          "ensures"
                          "preserves"
                          "trusted"
+                         "share"
 			                   "opaque"
 			                   "reveal"
                          "outline"
