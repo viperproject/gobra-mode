@@ -162,9 +162,9 @@
 
 (defun gobra-read-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish verification with SIGNAL."
-  (when (and gobra-enable-verification-hook (or (equal (string-trim signal) "exited abnormally with code 1") (equal (string-trim signal) "finished")))
-      (cl-map 'list #'funcall gobra-verification-hook))
   (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
+    (when (and gobra-enable-verification-hook (or (equal (string-trim signal) "exited abnormally with code 1") (equal (string-trim signal) "finished")))
+      (cl-map 'list #'funcall gobra-verification-hook))
     (read-only-mode 1)
     (let ((out (buffer-string)))
       (let ((useful (split-string out "\n")))
@@ -186,9 +186,9 @@
 
 (defun gobra-printvpr-sentinel (proc signal)
   "Sentinel waiting for async process PROC of gobra to finish the production of vpr code with SIGNAL."
-  (when (and gobra-enable-verification-hook (or (equal (string-trim signal) "exited abnormally with code 1") (equal (string-trim signal) "finished")))
-      (cl-map 'list #'funcall gobra-verification-hook))
   (with-current-buffer (if gobra-async-buffer gobra-async-buffer gobra-current-async-buffer)
+    (when (and gobra-enable-verification-hook (or (equal (string-trim signal) "exited abnormally with code 1") (equal (string-trim signal) "finished")))
+      (cl-map 'list #'funcall gobra-verification-hook))
     (read-only-mode 1)
     (let ((out (buffer-string)))
       (let ((useful (split-string out "\n")))
