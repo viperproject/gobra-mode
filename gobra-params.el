@@ -144,6 +144,13 @@
        :getter (lambda ()
                  (read-string "Module: ")))
      ,(make-param-config-param
+       :name "moreJoins"
+       :doc "Specifies if silicon should be run with more joins completely enabled (all), disabled (off), or only for impure conditionals (impure).\nChoices: all, impure, off"
+       :args t
+       :getter (lambda ()
+                 (completing-read "More joins mode: "
+                                  '("all" "impure" "off") nil t)))
+     ,(make-param-config-param
        :name "noStreamErrors"
        :doc "Do not stream errors produced by Gobra but instead print them all organized by package in the end.")
      ,(make-param-config-param
