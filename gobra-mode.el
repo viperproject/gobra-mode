@@ -223,7 +223,7 @@
   (setq-local gobra-buffer (current-buffer))
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
-  (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
+  (let* ((cmd (format "java -jar -Xss1g %s %s" gobra-jar-path (gobra-args-serialize)))
          (buf (get-buffer-create "*Gobra Command Output*"))
          (_ (with-current-buffer buf (read-only-mode 0)))
          (b (format "%s" (async-shell-command (format "%s ; echo ; echo \"Gobra command: %s\"; echo ; time %s" gobra-output-buffer-prelude cmd cmd) buf))))
@@ -252,7 +252,7 @@
   (setq-local gobra-buffer (current-buffer))
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
-  (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize (cons (buffer-file-name) (line-number-at-pos)))))
+  (let* ((cmd (format "java -jar -Xss1g %s %s" gobra-jar-path (gobra-args-serialize (cons (buffer-file-name) (line-number-at-pos)))))
          (buf (get-buffer-create "*Gobra Command Output*"))
          (_ (with-current-buffer buf (read-only-mode 0)))
          (b (format "%s" (async-shell-command (format "%s ; echo ; echo \"Gobra command: %s\"; echo ; time %s" gobra-output-buffer-prelude cmd cmd) buf))))
@@ -284,7 +284,7 @@
   (let* ((extra-arg (if (not (member "printVpr" gobra-args-set))
                         " --printVpr "
                       ""))
-         (cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
+         (cmd (format "java -jar -Xss1g %s %s" gobra-jar-path (gobra-args-serialize)))
          (buf (get-buffer-create "*Gobra Command Output*"))
          (_ (with-current-buffer buf (read-only-mode 0)))
          (b (format "%s" (async-shell-command (format "%s ; echo ; echo \"Gobra command: %s %s\"; echo ; time %s %s" gobra-output-buffer-prelude cmd extra-arg cmd extra-arg) buf))))
