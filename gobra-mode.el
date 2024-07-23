@@ -20,6 +20,7 @@
 
 (require 'param-config)
 (require 'gobra-params)
+(require 'lsp-gobra)
 
 (defvar-local gobra-async-buffer nil "Keeps the async buffer in which gobra runs.")
 (defvar-local gobra-buffer nil "The buffer for which gobra runs.")

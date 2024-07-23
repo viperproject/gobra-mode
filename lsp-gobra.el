@@ -43,11 +43,7 @@
  (make-lsp-client
   :new-connection (lsp-tcp-connection 'lsp-gobra-server-command)
   :major-modes '(gobra-mode)
-  :priority -1
-  :completion-in-comments? t
-  :add-on? t
-  :multi-root t
-  :async-request-handlers (ht ("gobraServer/verify" #'lsp-gobra--confirm-local))
+  ;:async-request-handlers (ht ("gobraServer/verify" #'lsp-gobra--confirm-local))
   :server-id 'gobra-server))
 
 (lsp-consistency-check lsp-gobra)
