@@ -218,7 +218,16 @@
        :doc "Show version of this program")
      ,(make-param-config-param
        :name "disableNL"
-       :doc "Disable non-linear integer arithmetics"))
+       :doc "Disable non-linear integer arithmetics")
+     ,(make-param-config-param
+       :name "disablePureFunctsTerminationRequirement"
+       :doc "Do not enforce that all pure functions must have termination measures")
+     ,(make-param-config-param
+       :name "requireTriggers"
+       :doc "Enforces that all quantifiers have a user-provided trigger.")
+     ,(make-param-config-param
+       :name "unsafeWildcardOptimization"
+       :doc "Simplify wildcard terms in a way that might be unsafe. Only use this if you know what you are doing! See Silicon PR #756 for details."))
    (lambda (p q) (string< (param-config-param-name p) (param-config-param-name q)))))
 
 (provide 'gobra-params)
