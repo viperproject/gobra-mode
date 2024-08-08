@@ -66,7 +66,29 @@
   '((t (:foreground "Grey")))
   "The face used to distinguish args from args of args in the arguments construction buffer.")
 
+
+;; ==============
+;; comment bypass
+;; ==============
+
+(defconst gobra-comment-regexp-prefixes '("// ?@" "/* ?@"))
+
+(defun gobra-font-lock-syntactic-face-function (orig-fun state)
+  ;; Check if this comment starts with `gobra-comment-prefix'.
+  (if (and (nth 4 state)
+           (save-excursion
+             (goto-char (nth 8 state))
+             (cl-reduce (lambda (a b) (or a (looking-at b)))
+                        gobra-comment-regexp-prefixes
+                        :initial-value
+                        nil)))
+      'font-lock-default-function
+    ;; Default behavior.
+    (funcall orig-fun state)))
+
+;; =====
 ;; logic
+;; =====
 
 (defun gobra-all-buffers ()
   "Find all .go and .gobra buffers."
@@ -566,6 +588,8 @@ _c_: verify + viper                                        _p_  : prev ghost
   :keymap (list (cons (kbd "C-c g") 'gobra-minor-mode-hydra/body))
   (cursor-sensor-mode)
   (gobra-args-initialize)
+  (add-function :around (local 'font-lock-syntactic-face-function)
+                 #'gobra-font-lock-syntactic-face-function)
   (font-lock-add-keywords nil (list
                                (cons (concat "\\<" (regexp-opt gobra-keywords) "\\>")
                                      '((0 font-lock-builtin-face)))))
