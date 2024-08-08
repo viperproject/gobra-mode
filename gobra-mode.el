@@ -355,11 +355,16 @@
   (let* ((region (gobra-expand-ghost-region))
          (start (car region))
          (end (cdr region))
+         (offset (save-excursion
+                   (goto-char start)
+                   (let* ((s (thing-at-point 'line))
+                          (m (string-match "^\\([[:blank:]]*\\)//.*" s)))
+                     (match-string 1 s))))
          ov)
     (when region
       (setq ov (make-overlay start end))
       (push ov gobra-ghost-overlays)
-      (overlay-put ov 'display (propertize "ghost..." 'face 'font-lock-comment-face))
+      (overlay-put ov 'display (propertize (format "%sghost..." offset) 'face 'font-lock-comment-face))
       (overlay-put ov 'invisible t))))
 
 (defun gobra-show-all ()
