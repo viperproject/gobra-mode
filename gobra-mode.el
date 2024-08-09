@@ -66,15 +66,28 @@
   '((t (:foreground "Grey")))
   "The face used to distinguish args from args of args in the arguments construction buffer.")
 
+(defface gobra-spec-face
+  '((t (:slant italic :foreground "forest green")))
+  "The face for gobra specification in go buffers.")
+
 
 ;; ==============
 ;; comment bypass
 ;; ==============
 
-(defconst gobra-comment-regexp-prefixes '("// ?@" "/* ?@"))
+(defconst gobra-comment-regexp-prefixes '("// ?@" "/\\* ?@"))
+
+(defun gobra-update-nth (l n i)
+  "Return a copy of the list L with the Nth element updated to I."
+  (append (cl-subseq l 0 n) (list i) (nthcdr (1+ n) l)))
+
+;; TODO: delete if not needed
+(defvar gobra-special-syntax-table (let ((st (make-syntax-table go-mode-syntax-table)))
+                                     (modify-syntax-entry ?\/ "_" st)
+                                     st))
 
 (defun gobra-font-lock-syntactic-face-function (orig-fun state)
-  ;; Check if this comment starts with `gobra-comment-prefix'.
+  ;; If we are in a comment and it starts with one of the `gobra-comment-regexp-prefixes'.
   (if (and (nth 4 state)
            (save-excursion
              (goto-char (nth 8 state))
@@ -82,7 +95,20 @@
                         gobra-comment-regexp-prefixes
                         :initial-value
                         nil)))
-      'font-lock-default-function
+      ;; Update the state to have no comment information
+      (let ((newstate (gobra-update-nth
+                       (gobra-update-nth
+                        (gobra-update-nth state
+                                          4
+                                          nil)
+                        7
+                        nil)
+                       8
+                       nil)))
+        ;; Call the original function with the updated state
+        ;; (message "%s %s" state newstate)
+        (funcall orig-fun newstate)
+        'gobra-spec-face)
     ;; Default behavior.
     (funcall orig-fun state)))
 
@@ -386,8 +412,9 @@
     (when region
       (setq ov (make-overlay start end))
       (push ov gobra-ghost-overlays)
-      (overlay-put ov 'display (propertize (format "%sghost..." offset) 'face 'font-lock-comment-face))
-      (overlay-put ov 'invisible t))))
+      (overlay-put ov 'display (propertize (format "%sghost..." offset) 'face 'gobra-spec-face))
+      (overlay-put ov 'invisible t)
+      (goto-char start))))
 
 (defun gobra-show-all ()
   "Show all the hidden regions with ghost code."
