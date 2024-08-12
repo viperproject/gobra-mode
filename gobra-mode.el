@@ -67,7 +67,38 @@
   '((t (:foreground "Grey")))
   "The face used to distinguish args from args of args in the arguments construction buffer.")
 
+(defface gobra-spec-face
+  '((t (:slant italic :foreground "forest green")))
+  "The face for gobra specification in go buffers.")
+
+
+;; ==============
+;; comment bypass
+;; ==============
+
+(defconst gobra-comment-regexp-prefixes '("// ?@" "/\\* ?@"))
+
+(defun gobra-update-nth (l n i)
+  "Return a copy of the list L with the Nth element updated to I."
+  (append (cl-subseq l 0 n) (list i) (nthcdr (1+ n) l)))
+
+(defun gobra-font-lock-syntactic-face-function (orig-fun state)
+  ;; If we are in a comment and it starts with one of the `gobra-comment-regexp-prefixes'.
+  (if (and (nth 4 state)
+           (save-excursion
+             (goto-char (nth 8 state))
+             (cl-reduce (lambda (a b) (or a (looking-at b)))
+                        gobra-comment-regexp-prefixes
+                        :initial-value
+                        nil)))
+      ;; Return the gobra-spec-face
+      'gobra-spec-face
+    ;; Default behavior.
+    (funcall orig-fun state)))
+
+;; =====
 ;; logic
+;; =====
 
 (defun gobra-all-buffers ()
   "Find all .go and .gobra buffers."
@@ -224,7 +255,7 @@
   (setq-local gobra-buffer (current-buffer))
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
-  (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
+  (let* ((cmd (format "java -jar -Xss1g %s %s" gobra-jar-path (gobra-args-serialize)))
          (buf (get-buffer-create "*Gobra Command Output*"))
          (_ (with-current-buffer buf (read-only-mode 0)))
          (b (format "%s" (async-shell-command (format "%s ; echo ; echo \"Gobra command: %s\"; echo ; time %s" gobra-output-buffer-prelude cmd cmd) buf))))
@@ -253,7 +284,7 @@
   (setq-local gobra-buffer (current-buffer))
   (when gobra-z3-path
     (setenv "Z3_EXE" gobra-z3-path))
-  (let* ((cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize (cons (buffer-file-name) (line-number-at-pos)))))
+  (let* ((cmd (format "java -jar -Xss1g %s %s" gobra-jar-path (gobra-args-serialize (cons (buffer-file-name) (line-number-at-pos)))))
          (buf (get-buffer-create "*Gobra Command Output*"))
          (_ (with-current-buffer buf (read-only-mode 0)))
          (b (format "%s" (async-shell-command (format "%s ; echo ; echo \"Gobra command: %s\"; echo ; time %s" gobra-output-buffer-prelude cmd cmd) buf))))
@@ -285,7 +316,7 @@
   (let* ((extra-arg (if (not (member "printVpr" gobra-args-set))
                         " --printVpr "
                       ""))
-         (cmd (format "java -jar -Xss128m %s %s" gobra-jar-path (gobra-args-serialize)))
+         (cmd (format "java -jar -Xss1g %s %s" gobra-jar-path (gobra-args-serialize)))
          (buf (get-buffer-create "*Gobra Command Output*"))
          (_ (with-current-buffer buf (read-only-mode 0)))
          (b (format "%s" (async-shell-command (format "%s ; echo ; echo \"Gobra command: %s %s\"; echo ; time %s %s" gobra-output-buffer-prelude cmd extra-arg cmd extra-arg) buf))))
@@ -356,12 +387,18 @@
   (let* ((region (gobra-expand-ghost-region))
          (start (car region))
          (end (cdr region))
+         (offset (save-excursion
+                   (goto-char start)
+                   (let* ((s (thing-at-point 'line))
+                          (m (string-match "^\\([[:blank:]]*\\)//.*" s)))
+                     (match-string 1 s))))
          ov)
     (when region
       (setq ov (make-overlay start end))
       (push ov gobra-ghost-overlays)
-      (overlay-put ov 'display (propertize "ghost..." 'face 'font-lock-comment-face))
-      (overlay-put ov 'invisible t))))
+      (overlay-put ov 'display (propertize (format "%sghost..." offset) 'face 'gobra-spec-face))
+      (overlay-put ov 'invisible t)
+      (goto-char start))))
 
 (defun gobra-show-all ()
   "Show all the hidden regions with ghost code."
@@ -562,6 +599,8 @@ _c_: verify + viper                                        _p_  : prev ghost
   :keymap (list (cons (kbd "C-c g") 'gobra-minor-mode-hydra/body))
   (cursor-sensor-mode)
   (gobra-args-initialize)
+  (add-function :around (local 'font-lock-syntactic-face-function)
+                 #'gobra-font-lock-syntactic-face-function)
   (font-lock-add-keywords nil (list
                                (cons (concat "\\<" (regexp-opt gobra-keywords) "\\>")
                                      '((0 font-lock-builtin-face)))))
