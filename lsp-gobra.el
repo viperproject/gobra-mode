@@ -24,6 +24,10 @@
 (defconst lsp-gobra/status-warn 2)
 (defconst lsp-gobra/status-error 3)
 
+;; ==========================
+;; lsp-gobra group and custom
+;; ==========================
+
 (defgroup lsp-gobra nil
   "Gobra language server group."
   :group 'lsp-mode
@@ -39,11 +43,24 @@
   "Create arguments to start gobra language server in TCP mode on PORT."
   `("java" "-jar" "-Xss128m" ,lsp-gobra-server "--port" ,(number-to-string port)))
 
+;; ===============
+;; custom commands
+;; ===============
+
+(defun lsp-gobra/verify ()
+  (interactive)
+  (message "%s"
+           (lsp(lsp--make-notification "gobraServer/verify"))))
+
+;; ===================
+;; register the client
+;; ===================
+
 (lsp-register-client
  (make-lsp-client
   :new-connection (lsp-tcp-connection 'lsp-gobra-server-command)
   :major-modes '(gobra-mode)
-  ;:async-request-handlers (ht ("gobraServer/verify" #'lsp-gobra--confirm-local))
+                                        ;:async-request-handlers (ht ("gobraServer/verify" #'lsp-gobra--confirm-local))
   :server-id 'gobra-server))
 
 (lsp-consistency-check lsp-gobra)
