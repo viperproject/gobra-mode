@@ -631,7 +631,7 @@ _c_: verify + viper                                        _p_  : prev ghost
                                      '((0 font-lock-builtin-face)))
                                (list "\\(\\_<forall\\_>\\).*?::"
                                      '(1 (compose-region (match-beginning 1) (match-end 1) ?∀))
-                                     '(1 font-lock-builtin-face 'append))
+                                     '(1 font-lock-builtin-face append))
                                (list "\\(-\\)\\(-\\)\\(*\\)"
                                      '(1 (compose-region (match-beginning 1) (match-end 1) ?‒))
                                      '(1 (compose-region (match-beginning 2) (match-end 2) ?‒))
