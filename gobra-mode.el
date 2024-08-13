@@ -547,7 +547,6 @@
                          "outline"
                          "pred"
                          "pure"
-                         "forall"
                          "exists"
                          "assume"
                          "apply"
@@ -562,6 +561,25 @@
                          "unfold"
                          "decreases")
   "Holds all the gobra keywords which should be highlighted.")
+
+(defvar gobra-pretty-symbols
+  '(("<=" . 8804)
+    (">=" . 8805)
+    ("!=" . 8800)
+    (":=" . 8788)
+    ("&&" . 10043)
+    ("||" . 8744)
+    ("=>" . 8658)
+    ("<==>" . 10234)
+    ("==>" . 10233)
+    ("<==" . 10232)
+    ("exists" . 8707)
+    ("::" . 8729)
+    ("in" . 8712)
+    ("==" . 65309)
+    ("===" . 8801)
+    ("!==" . 8802))
+  "Symbols that gobra-mode will automatically prettify")
 
 
 (defhydra gobra-minor-mode-hydra (:hint
@@ -601,9 +619,26 @@ _c_: verify + viper                                        _p_  : prev ghost
   (gobra-args-initialize)
   (add-function :around (local 'font-lock-syntactic-face-function)
                  #'gobra-font-lock-syntactic-face-function)
+  (setq-local prettify-symbols-compose-predicate
+              (lambda (start end _match)
+                (let* ((syntaxes-beg (if (memq (char-syntax (char-after start)) '(?w ?_))
+                                         '(?w ?_) '(?. ?\\)))
+                       (syntaxes-end (if (memq (char-syntax (char-before end)) '(?w ?_))
+                                         '(?w ?_) '(?. ?\\))))
+                  (not (or (memq (char-syntax (or (char-before start) ?\s)) syntaxes-beg)
+                           (memq (char-syntax (or (char-after end) ?\s)) syntaxes-end))))))
   (font-lock-add-keywords nil (list
                                (cons (concat "\\<" (regexp-opt gobra-keywords) "\\>")
-                                     '((0 font-lock-builtin-face)))))
+                                     '((0 font-lock-builtin-face)))
+                               (list "\\(\\_<forall\\_>\\).*?::"
+                                     '(1 (compose-region (match-beginning 1) (match-end 1) ?∀))
+                                     '(1 font-builtin-face append))
+                               (list "\\(-\\)\\(-\\)\\(*\\)"
+                                     '(1 (compose-region (match-beginning 1) (match-end 1) ?‒))
+                                     '(1 (compose-region (match-beginning 2) (match-end 2) ?‒))
+                                     '(1 (compose-region (match-beginning 3) (match-end 3) ?✻)))))
+  (setq-local prettify-symbols-alist gobra-pretty-symbols)
+  (prettify-symbols-mode)
   (if (fboundp 'font-lock-flush)
       (font-lock-flush)
     (when font-lock-mode
