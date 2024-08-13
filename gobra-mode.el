@@ -562,8 +562,14 @@
                          "decreases")
   "Holds all the gobra keywords which should be highlighted.")
 
+(defvar gobra-comment-char ?┆)
+
+(defvar gobra-multiline-comment-open-char ?┆)
+
+(defvar gobra-multiline-comment-close-char ?┆)
+
 (defvar gobra-pretty-symbols
-  '(("<=" . 8804)
+  `(("<=" . 8804)
     (">=" . 8805)
     ("!=" . 8800)
     (":=" . 8788)
@@ -578,7 +584,13 @@
     ("in" . 8712)
     ("==" . 65309)
     ("===" . 8801)
-    ("!==" . 8802))
+    ("!==" . 8802)
+    ("// @" . ,gobra-comment-char)
+    ("//@" . ,gobra-comment-char)
+    ("/* @" . ,gobra-multiline-comment-open-char)
+    ("/*@" . ,gobra-multiline-comment-open-char)
+    ("@ */" . ,gobra-multiline-comment-close-char)
+    ("@*/" . ,gobra-multiline-comment-close-char))
   "Symbols that gobra-mode will automatically prettify")
 
 
